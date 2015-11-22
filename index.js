@@ -12,7 +12,7 @@ function Rollup(inputNode, options) {
   }
   
   if (!options || !options.rollup.dest || !options.inputFiles) {
-    throw new Error('inputFiles and rollupOptions.dest options ware required');
+    throw new Error('inputFiles and rollup.dest options are required');
   }
   
   CachingWriter.call(this, [inputNode], {
@@ -27,8 +27,9 @@ function Rollup(inputNode, options) {
 Rollup.prototype.build = function() {
   this.rollupOptions.entry = path.join(this.inputPaths[0], this.rollupOptions.entry);
   this.rollupOptions.dest = path.join(this.outputPath, this.rollupOptions.dest);
-  console.log(this.rollupOptions);
   return rollup(this.rollupOptions).then(function(bundle) {
     return bundle.write(this.rollupOptions);
-  }.bind(this));
+  }.bind(this)).catch(function(err) {
+    console.error(err);
+  });
 };
