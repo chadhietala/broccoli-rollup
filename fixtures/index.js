@@ -1,0 +1,1 @@
+import { add } from './add'; let i = add(1); export default i;
