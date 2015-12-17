@@ -1,6 +1,6 @@
 {
   "name": "broccoli-rollup",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Rollup integration with broccoli",
   "main": "index.js",
   "scripts": {
