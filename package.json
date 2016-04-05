@@ -11,9 +11,13 @@
   ],
   "author": "Chad Hietala <chadhietala@gmail.com>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chadhietala/broccoli-rollup"
+  },
   "dependencies": {
     "broccoli-caching-writer": "^2.2.0",
-    "rollup": "^0.21.0"
+    "rollup": "^0.25.8"
   },
   "devDependencies": {
     "broccoli-fixture": "^0.1.0",
