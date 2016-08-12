@@ -16,12 +16,12 @@
     "url": "https://github.com/chadhietala/broccoli-rollup"
   },
   "dependencies": {
-    "broccoli-caching-writer": "^2.2.0",
+    "broccoli-caching-writer": "^3.0.3",
     "rollup": "^0.26.2"
   },
   "devDependencies": {
     "broccoli-fixture": "^0.1.0",
-    "broccoli-test-helpers": "0.0.8",
+    "broccoli-test-helpers": "0.0.9",
     "chai": "^3.4.1",
     "mocha": "^2.3.4"
   }
