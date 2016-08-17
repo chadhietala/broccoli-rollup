@@ -11,7 +11,7 @@ export default class Rollup extends Plugin {
     super([node], options);
 
     this._persistentOutput = true;
-    this.rollupOptions  = options.rollup;;
+    this.rollupOptions  = options.rollup;
     this.configPath = options.configPath;
 
     this._lastBundle = null;
