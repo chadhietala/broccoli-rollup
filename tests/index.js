@@ -11,11 +11,10 @@ const { expect } = chai;
 chai.use(require('chai-fs'));
 describe('BroccoliRollup', () => {
   const input = 'tmp/fixture-input';
-  fs.mkdirpSync(input);
-
   let node, pipeline;
 
   beforeEach(() => {
+    fs.mkdirpSync(input);
     fixture.writeSync(input, {
       'add.js': 'function add(a) { return a + 1; }\n export { add };',
       'index.js': 'import { add } from "./add"; const two = add(1); export default two;'
@@ -32,7 +31,8 @@ describe('BroccoliRollup', () => {
   });
 
   afterEach(() => {
-    fixture.writeSync(input, null);
+    fs.removeSync(input);
+    return pipeline.cleanup();
   });
 
   it('simple', async () => {
