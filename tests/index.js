@@ -86,11 +86,25 @@ describe('BroccoliRollup', () => {
       expect(directory + '/out.js').
         to.have.content('var add = x => x + x;\n\nvar index = add(1);\n\nexport default index;');
     });
+
+    describe('stability', function(){
+      it('is stable on idempotent rebuild', async () => {
+        let { directory } = await pipeline.build();
+
+        let beforeStat = fs.statSync(directory + '/out.js');
+
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        await pipeline.build();
+
+        let afterStat = fs.statSync(directory + '/out.js');
+
+        expect(beforeStat).to.eql(afterStat);
+      });
+    });
   });
   // TODO:
   // hinting
   // code coverage
   // config reloads
-  // is stable
   // supports multiple targets
 });
