@@ -9,11 +9,11 @@ import fs from 'fs-extra';
 const { expect } = chai;
 
 chai.use(require('chai-fs'));
-describe('BroccoliRollup', () => {
+describe('BroccoliRollup', function() {
   const input = 'tmp/fixture-input';
   let node, pipeline;
 
-  beforeEach(() => {
+  beforeEach(function() {
     fs.mkdirpSync(input);
     fixture.writeSync(input, {
       'add.js': 'export default x => x + x;',
@@ -30,20 +30,20 @@ describe('BroccoliRollup', () => {
     pipeline = new broccoli.Builder(node);
   });
 
-  afterEach(() => {
+  afterEach(function() {
     fs.removeSync(input);
     return pipeline.cleanup();
   });
 
-  it('simple', async () => {
+  it('simple', async function() {
     const { directory } = await pipeline.build();
 
     expect(directory + '/out.js').
       to.have.content('var add = x => x + x;\n\nconst two = add(1);\n\nexport default two;');
   });
 
-  describe('rebuild', () => {
-    it('simple', async () => {
+  describe('rebuild', function() {
+    it('simple', async function() {
 
       let { directory } = await pipeline.build();
 
@@ -88,7 +88,7 @@ describe('BroccoliRollup', () => {
     });
 
     describe('stability', function(){
-      it('is stable on idempotent rebuild', async () => {
+      it('is stable on idempotent rebuild', async function() {
         let { directory } = await pipeline.build();
 
         let beforeStat = fs.statSync(directory + '/out.js');
