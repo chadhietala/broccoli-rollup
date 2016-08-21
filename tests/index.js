@@ -1,13 +1,17 @@
 import 'regenerator-runtime/runtime';
 import chai from 'chai';
+import chaiFiles from 'chai-files';
+import walkSync from 'walk-sync';
 import fixture from 'fixturify';
 import Rollup from '../';
 import broccoli from 'broccoli';
 import fs from 'fs-extra';
 
 const { expect } = chai;
+const { file } = chaiFiles;
 
-chai.use(require('chai-fs'));
+chai.use(chaiFiles);
+
 describe('BroccoliRollup', function() {
   const input = 'tmp/fixture-input';
   let node, pipeline;
@@ -37,8 +41,8 @@ describe('BroccoliRollup', function() {
   it('simple', async function() {
     const { directory } = await pipeline.build();
 
-    expect(directory + '/out.js').
-      to.have.content('var add = x => x + x;\n\nconst two = add(1);\n\nexport default two;');
+    expect(file(directory + '/out.js'))
+      .to.equal('var add = x => x + x;\n\nconst two = add(1);\n\nexport default two;');
   });
 
   describe('rebuild', function() {
@@ -48,13 +52,13 @@ describe('BroccoliRollup', function() {
 
       fixture.writeSync(input, { 'minus.js':  'export default x => x - x;' });
 
-      expect(directory + '/out.js').
-        to.have.content('var add = x => x + x;\n\nconst two = add(1);\n\nexport default two;');
+      expect(file(directory + '/out.js'))
+        .to.equal('var add = x => x + x;\n\nconst two = add(1);\n\nexport default two;');
 
       await pipeline.build();
 
-      expect(directory + '/out.js').
-        to.have.content('var add = x => x + x;\n\nconst two = add(1);\n\nexport default two;');
+      expect(file(directory + '/out.js'))
+        .to.equal('var add = x => x + x;\n\nconst two = add(1);\n\nexport default two;');
 
       fixture.writeSync(input, {
         'index.js': 'import add from "./add"; import minus from "./minus"; export default { a: add(1), b: minus(1) };'
@@ -62,8 +66,8 @@ describe('BroccoliRollup', function() {
 
       await pipeline.build();
 
-      expect(directory + '/out.js').
-        to.have.content('var add = x => x + x;\n\nvar minus = x => x - x;\n\nvar index = { a: add(1), b: minus(1) };\n\nexport default index;');
+      expect(file(directory + '/out.js'))
+        .to.equal('var add = x => x + x;\n\nvar minus = x => x - x;\n\nvar index = { a: add(1), b: minus(1) };\n\nexport default index;');
 
       fixture.writeSync(input, { 'minus.js':  null });
 
@@ -82,8 +86,8 @@ describe('BroccoliRollup', function() {
 
       await pipeline.build();
 
-      expect(directory + '/out.js').
-        to.have.content('var add = x => x + x;\n\nvar index = add(1);\n\nexport default index;');
+      expect(file(directory + '/out.js'))
+        .to.equal('var add = x => x + x;\n\nvar index = add(1);\n\nexport default index;');
     });
 
     describe('stability', function(){
