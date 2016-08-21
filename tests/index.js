@@ -1,6 +1,5 @@
 import 'regenerator-runtime/runtime';
 import chai from 'chai';
-import walkSync from 'walk-sync';
 import fixture from 'fixturify';
 import Rollup from '../';
 import broccoli from 'broccoli';

@@ -33,8 +33,7 @@
     "chai": "^3.5.0",
     "chai-fs": "^0.1.0",
     "mocha": "^2.5.3",
-    "regenerator-runtime": "^0.9.5",
-    "walk-sync": "^0.3.0"
+    "regenerator-runtime": "^0.9.5"
   },
   "dependencies": {
     "broccoli-plugin": "^1.2.1",
