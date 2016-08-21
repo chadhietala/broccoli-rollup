@@ -1,7 +1,7 @@
 # Usage
 Broccoli-rollup is a simple wrapper around [Rollup](https://github.com/rollup/rollup). In the options object pass the rollup options.
 
-```
+```js
 var rollup = require('broccoli-rollup');
 var lib = 'lib';
 
