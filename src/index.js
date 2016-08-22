@@ -35,27 +35,22 @@ export default class Rollup extends Plugin {
   }
 
   _loadOptions() {
-    let options;
-    // TODO:
-    if (this.configPath) {
-      // TODO: quick solution :P
-      // TODO: restore ES6 support to config
-      delete require.cache[this.configPath];
-      options = require(this.configPath);
-      options.cache = this._lastBundle;
-    } else {
-      // if no configPath was specified, assume this.rollupOptions in its
-      // entirely was the options.
-      // TODO: support annotations
-      options = this.rollupOptions;
-    }
+    // TODO: support rollup config files
+    let options = this.rollupOptions;
 
     if (options.targets) {
       return options;
     } else {
       options.targets = [
-        { dest: options.dest, moduleName: options.moduleName }
+        {
+          format: options.format,
+          dest: options.dest,
+          moduleName: options.moduleName
+        }
       ];
+      delete options.format;
+      delete options.dest;
+      delete options.moduleName;
       return options;
     }
   }
@@ -68,6 +63,7 @@ export default class Rollup extends Plugin {
       options.entry = this.inputPaths[0] + '/' + options.entry;
     }
 
+    console.log(options);
     return require('rollup').rollup(options)
       .then(bundle => {
         this._lastBundle = bundle;
@@ -75,13 +71,9 @@ export default class Rollup extends Plugin {
         options.targets.forEach(target => {
           let dest = target.dest;
           let format = target.format;
-
-          let output = bundle.generate({
-            format,
-            moduleName: target.moduleName
-          }).code;
-
+          let output = bundle.generate(target).code;
           let outputPath = this.outputPath + '/'+ dest;
+
           fs.mkdirpSync(path.dirname(outputPath)); // needs dependency stuff :P
 
           this.writeFileIfContentChanged(outputPath, output);
