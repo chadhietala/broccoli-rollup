@@ -13,7 +13,6 @@ export default class Rollup extends Plugin {
 
     this._persistentOutput = true;
     this.rollupOptions  = options.rollup || {};
-    this.configPath = options.configPath;
 
     this._lastBundle = null;
 
@@ -38,6 +37,7 @@ export default class Rollup extends Plugin {
   _loadOptions() {
     // TODO: support rollup config files
     let options = this.rollupOptions;
+    options.cache = this._lastBundle;
 
     if (options.targets) {
       return options;

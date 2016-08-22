@@ -49,7 +49,11 @@ describe('BroccoliRollup', function() {
     describe('rebuild', function() {
       it('simple', async function() {
 
+        expect(node._lastBundle).to.be.null;
+
         let { directory } = await pipeline.build();
+
+        expect(Object.keys(node._lastBundle)).to.not.be.empty;
 
         fixture.writeSync(input, { 'minus.js':  'export default x => x - x;' });
 
@@ -78,7 +82,7 @@ describe('BroccoliRollup', function() {
         } catch (e) {
           errorWasThrown = true;
           expect(e).to.have.property('message');
-          expect(e.message).to.match(/Could not resolve/);
+          expect(e.message).to.match(/Could not (resolve|load)/);
         }
 
         fixture.writeSync(input, {
