@@ -101,6 +101,8 @@ describe('BroccoliRollup', function() {
 
           let beforeStat = fs.statSync(directory + '/out.js');
 
+          // some filesystems dont have lower then 1s mtime resolution, so lets
+          // wait
           await new Promise(resolve => setTimeout(resolve, 1000));
           await pipeline.build();
 
