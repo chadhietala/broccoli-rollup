@@ -1,4 +1,5 @@
-import 'regenerator-runtime/runtime';
+import 'es6-promise'; // for regenerator
+import 'regenerator-runtime/runtime'; // only for tests, because async/await tests are very nice
 import chai from 'chai';
 import chaiFiles from 'chai-files';
 import walkSync from 'walk-sync';

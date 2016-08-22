@@ -5,6 +5,9 @@ import path from 'path';
 import { default as _logger } from 'heimdalljs-logger';
 import heimdall from 'heimdalljs';
 
+// rollup requires this, so old version of node need it
+import 'es6-map/implement';
+
 const logger = _logger('broccoli-rollup');
 
 export default class Rollup extends Plugin {
