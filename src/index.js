@@ -2,9 +2,10 @@ import fs from 'fs-extra';
 import Plugin from 'broccoli-plugin';
 import md5Hex from 'md5-hex';
 import path from 'path';
-import { default as _debug } from 'debug';
+import { default as _logger } from 'heimdalljs-logger';
+import heimdall from 'heimdalljs';
 
-const debug = _debug('broccoli-rollup');
+const logger = _logger('broccoli-rollup');
 
 export default class Rollup extends Plugin {
   constructor(node, options = {}) {
@@ -25,10 +26,10 @@ export default class Rollup extends Plugin {
     let next = md5Hex(content);
 
     if (previous === next) {
-      debug('cache hit, no change to: %s', fullPath);
+      logger.debug('cache hit, no change to: %s', fullPath);
       // hit
     } else {
-      debug('cache miss, write to: %s', fullPath);
+      logger.debug('cache miss, write to: %s', fullPath);
       fs.writeFileSync(fullPath, content);
       this._fileToChecksumMap[fullPath] = next; // update map
     }
@@ -63,20 +64,22 @@ export default class Rollup extends Plugin {
       options.entry = this.inputPaths[0] + '/' + options.entry;
     }
 
-    return require('rollup').rollup(options)
-      .then(bundle => {
-        this._lastBundle = bundle;
+    return heimdall.node('rollup', () => {
+      return require('rollup').rollup(options)
+        .then(bundle => {
+          this._lastBundle = bundle;
 
-        options.targets.forEach(target => {
-          let dest = target.dest;
-          let format = target.format;
-          let output = bundle.generate(target).code;
-          let outputPath = this.outputPath + '/'+ dest;
+          options.targets.forEach(target => {
+            let dest = target.dest;
+            let format = target.format;
+            let output = bundle.generate(target).code;
+            let outputPath = this.outputPath + '/'+ dest;
 
-          fs.mkdirpSync(path.dirname(outputPath)); // needs dependency stuff :P
+            fs.mkdirpSync(path.dirname(outputPath)); // needs dependency stuff :P
 
-          this.writeFileIfContentChanged(outputPath, output);
+            this.writeFileIfContentChanged(outputPath, output);
+          });
         });
-      });
+    });
   }
 }
