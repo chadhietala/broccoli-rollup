@@ -11,10 +11,12 @@ export default class Rollup extends Plugin {
     super([node], options);
 
     this._persistentOutput = true;
-    this.rollupOptions  = options.rollup;
+    this.rollupOptions  = options.rollup || {};
     this.configPath = options.configPath;
 
     this._lastBundle = null;
+
+    // TODO: maybe extract
     this._fileToChecksumMap = Object.create(null);
   }
 
@@ -52,7 +54,7 @@ export default class Rollup extends Plugin {
       return options;
     } else {
       options.targets = [
-        { dest: options.dest }
+        { dest: options.dest, moduleName: options.moduleName }
       ];
       return options;
     }
@@ -76,7 +78,7 @@ export default class Rollup extends Plugin {
 
           let output = bundle.generate({
             format,
-            moduleName: options.moduleName
+            moduleName: target.moduleName
           }).code;
 
           let outputPath = this.outputPath + '/'+ dest;
