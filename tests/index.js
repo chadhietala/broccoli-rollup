@@ -173,7 +173,7 @@ return two;
               dest: 'dist/out.umd.js'
             },
             {
-              format: 'es6',
+              format: 'es',
               dest: 'dist/out.js'
             }
           ]
