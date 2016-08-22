@@ -62,7 +62,7 @@ export default class Rollup extends Plugin {
   build() {
     const options = this._loadOptions();
 
-    if (options.entry && options.entry.charAt(0) !== '/') {
+    if (options.entry && !path.isAbsolute(options.entry)) {
       // if entry is not absolute, make it absolute relative to the inputPath
       options.entry = this.inputPaths[0] + '/' + options.entry;
     }
