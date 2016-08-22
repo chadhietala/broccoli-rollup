@@ -63,7 +63,6 @@ export default class Rollup extends Plugin {
       options.entry = this.inputPaths[0] + '/' + options.entry;
     }
 
-    console.log(options);
     return require('rollup').rollup(options)
       .then(bundle => {
         this._lastBundle = bundle;
