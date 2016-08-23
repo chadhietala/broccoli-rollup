@@ -8,7 +8,8 @@
     "build:serve": "broccoli serve",
     "test": "npm run build && mocha dist/tests",
     "test:fast": "mocha dist/tests",
-    "test:debug": "npm run build && mocha debug dist/tests"
+    "test:debug": "npm run build && mocha debug dist/tests",
+    "prepublish": "npm run build"
   },
   "keywords": [
     "broccoli"
