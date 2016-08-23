@@ -13,7 +13,7 @@
   "keywords": [
     "broccoli"
   ],
-  "author": "Chad Hietala <chadhietala@gmail.com> & Stefan Penner <stefan.penner@gmai.com>",
+  "author": "Chad Hietala <chadhietala@gmail.com> & Stefan Penner <stefan.penner@gmail.com>",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -40,7 +40,6 @@
   },
   "dependencies": {
     "broccoli-plugin": "^1.2.1",
-    "debug": "^2.2.0",
     "es6-map": "^0.1.4",
     "fs-extra": "^0.30.0",
     "heimdalljs": "^0.2.1",
