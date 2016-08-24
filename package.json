@@ -22,7 +22,8 @@
   },
   "homepage": "https://github.com/chadhietala/broccoli-rollup#readme",
   "files": [
-    "dist/"
+    "dist/",
+    "!dist/tests"
   ],
   "devDependencies": {
     "broccoli": "^0.16.9",
