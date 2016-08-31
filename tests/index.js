@@ -181,6 +181,7 @@ return two;
             },
             {
               format: 'es',
+              sourceMap: true,
               dest: 'dist/out.js'
             }
           ]
@@ -193,6 +194,7 @@ return two;
 
       expect(walkSync(directory + '/dist')).to.eql([
         'out.js',
+        'out.js.map',
         'out.umd.js'
       ]);
 
@@ -201,7 +203,12 @@ return two;
 
 const two = add(1);
 
-export default two;`);
+export default two;
+//# sourceMappingURL=out.js.map
+`);
+
+      expect(file(directory + '/dist/out.js.map'))
+        .to.equal('{"version":3,"file":"out.js","sources":["../add.js","../index.js"],"sourcesContent":["export default x => x + x;","import add from \\"./add\\"; const two = add(1); export default two;"],"names":[],"mappings":"AAAA,UAAe,CAAC,IAAI,CAAC,GAAG,CAAC;;ACAA,MAAM,GAAG,GAAG,GAAG,CAAC,CAAC,CAAC,CAAC,AAAC,;;"}');
 
       expect(file(directory + '/dist/out.umd.js'))
         .to.equal(`(function (global, factory) {
