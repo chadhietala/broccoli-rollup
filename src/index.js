@@ -13,12 +13,10 @@ import 'es6-map/implement';
 const logger = _logger('broccoli-rollup');
 
 class Entry {
-  constructor(dest, content) {
+  constructor(dest, checksum) {
     this.relativePath = dest;
-    this.content = content;
     this.mode = 0;
-    this.size = content.length;
-    this.checksum = md5Hex(content);
+    this.checksum = checksum;
   }
 
   isDirectory() {
@@ -26,13 +24,11 @@ class Entry {
   }
 }
 
-function isEqual(entryA, entryB) {
+function isUnchanged(entryA, entryB) {
   if (entryA.isDirectory() && entryB.isDirectory()) {
     return true;
   }
-  if (entryA.mode === entryB.mode &&
-      entryA.size === entryB.size &&
-      entryA.checksum === entryB.checksum) {
+  if (entryA.mode === entryB.mode && entryA.checksum === entryB.checksum) {
     logger.debug('cache hit, no change to: %s', entryA.relativePath);
     return true;
   }
@@ -42,14 +38,16 @@ function isEqual(entryA, entryB) {
 
 export default class Rollup extends Plugin {
   constructor(node, options = {}) {
-    super([node], options);
-
-    this._persistentOutput = true;
+    super([node], {
+      name: options && options.name,
+      annotation: options && options.annotation,
+      persistentOutput: true
+    });
     this.rollupOptions  = options.rollup || {};
-
-    this._lastBundle = null;
-
     this._lastTree = FSTree.fromEntries([]);
+    this._lastBundle = null;
+    this._entries = null;
+    this._contents = null;
   }
 
   _loadOptions() {
@@ -70,7 +68,7 @@ export default class Rollup extends Plugin {
   }
 
   _patchOutput(nextTree) {
-    let patch = this._lastTree.calculatePatch(nextTree, isEqual);
+    let patch = this._lastTree.calculatePatch(nextTree, isUnchanged);
     this._lastTree = nextTree;
     patch.forEach(([op, path, entry]) => {
       switch (op) {
@@ -85,7 +83,7 @@ export default class Rollup extends Plugin {
           break;
         case 'create':
         case 'change':
-          fs.writeFileSync(this.outputPath + '/' + path, entry.content);
+          fs.writeFileSync(this.outputPath + '/' + path, this._contents[path]);
           break;
       }
     });
@@ -101,36 +99,59 @@ export default class Rollup extends Plugin {
   }
 
   _buildTargets(bundle, options) {
-    let entries = [];
     this._targetsFor(options).forEach(options => {
-      let dest = options.dest;
-      let { code, map } = bundle.generate(options);
-      if ( options.sourceMap ) {
-        let url;
-        if (options.sourceMap === 'inline') {
-          url = map.toUrl();
-        } else {
-          url = path.basename(dest) + '.map';
-          entries.push(new Entry(dest + '.map', map.toString()));
-        }
-        code += `\n//# sourceMappingURL=${url}\n`;
-      }
-      entries.push(new Entry(dest, code));
+      this._buildTarget(bundle, options);
     });
-    return FSTree.fromEntries(entries, {
+    return FSTree.fromEntries(this._entries, {
       sortAndExpand: true
     });
   }
 
+  _buildTarget(bundle, options) {
+    let dest = options.dest;
+    let { code, map } = bundle.generate(options);
+    if (options.sourceMap) {
+      let url = this._addSourceMap(map, options, dest);
+      code += `\n//# sourceMappingURL=${url}\n`;
+    }
+    this._addEntry(dest, code);
+  }
+
+  _addSourceMap(map, options, relativePath) {
+    if (options.sourceMap === 'inline') {
+      return map.toUrl();
+    }
+    let url = path.basename(relativePath) + '.map';
+    this._addEntry(relativePath + '.map', map.toString());
+    return url;
+  }
+
+  _addEntry(relativePath, content) {
+    this._entries.push(new Entry(relativePath, md5Hex(content)));
+    this._contents[relativePath] = content;
+  }
+
+  _initEntries() {
+    this._entries = [];
+    this._contents = Object.create(null);
+  }
+
+  _clearEntries() {
+    this._entries = null;
+    this._contents = null;
+  }
+
   build() {
-    const options = this._loadOptions();
+    let options = this._loadOptions();
     return heimdall.node('rollup', () => {
       return this._withInputPath(() => {
         return require('rollup').rollup(options)
           .then(bundle => {
             this._lastBundle = bundle;
+            this._initEntries();
             let nextTree = this._buildTargets(bundle, options);
             this._patchOutput(nextTree);
+            this._clearEntries();
           });
       });
     });
