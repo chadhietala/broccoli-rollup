@@ -2,7 +2,6 @@ import Plugin from 'broccoli-plugin';
 import path from 'path';
 import { default as _logger } from 'heimdalljs-logger';
 import heimdall from 'heimdalljs';
-import { Promise } from 'rsvp';
 import OutputPatcher from './output-patcher';
 
 // rollup requires this, so old version of node need it
@@ -24,20 +23,19 @@ export default class Rollup extends Plugin {
 
   build() {
     let options = this._loadOptions();
+    options.entry = this.inputPaths[0] + '/' + options.entry;
     return heimdall.node('rollup', () => {
-      return this._withInputPath(() => {
-        return require('rollup').rollup(options)
-          .then(bundle => {
-            this._lastBundle = bundle;
-            this._buildTargets(bundle, options);
-          });
-      });
+      return require('rollup').rollup(options)
+        .then(bundle => {
+          this._lastBundle = bundle;
+          this._buildTargets(bundle, options);
+        });
     });
   }
 
   _loadOptions() {
     // TODO: support rollup config files
-    let options = this.rollupOptions;
+    let options = assign({}, this.rollupOptions);
     options.cache = this._lastBundle;
     return options;
   }
@@ -52,15 +50,6 @@ export default class Rollup extends Plugin {
     throw new Error('missing targets or dest in options');
   }
 
-  _withInputPath(cb) {
-    const dir = process.cwd();
-    return Promise.resolve().then(() => {
-      process.chdir(this.inputPaths[0]);
-    }).then(cb).finally(() => {
-      process.chdir(dir);
-    });
-  }
-
   _buildTargets(bundle, options) {
     let output = this._getOutput();
     this._targetsFor(options).forEach(options => {
@@ -70,8 +59,16 @@ export default class Rollup extends Plugin {
   }
 
   _buildTarget(bundle, options, output) {
+    let { dest, sourceMap, sourceMapFile } = options;
+    // ensures "file" entry and relative "sources" entries
+    // are correct in the source map.
+    if (sourceMapFile) {
+      options.sourceMapFile = this.inputPaths[0] + '/' + sourceMapFile;
+    } else {
+      options.sourceMapFile = this.inputPaths[0] + '/' + dest;
+    }
+
     let { code, map } = bundle.generate(options);
-    let { dest, sourceMap } = options;
     if (sourceMap) {
       let url;
       if (sourceMap === 'inline') {
