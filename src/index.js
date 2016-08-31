@@ -64,7 +64,7 @@ export default class Rollup extends Plugin {
       return [options];
     }
     if (options.targets) {
-      return options.targets.map(target => Object.assign({}, options, target));
+      return options.targets.map(target => assign({}, options, target));
     }
     throw new Error('missing targets or dest in options');
   }
@@ -135,4 +135,16 @@ export default class Rollup extends Plugin {
       });
     });
   }
+}
+
+function assign(target) {
+  for (let i = 1; i < arguments.length; i++) {
+    let source = arguments[i];
+    let keys = Object.keys(source);
+    for (let j = 0; j < keys.length; j++) {
+      let key = keys[j];
+      target[key] = source[key];
+    }
+  }
+  return target;
 }
