@@ -1,6 +1,6 @@
 import FSTree from 'fs-tree-diff';
 import md5Hex from 'md5-hex';
-import * as fs from 'fs';
+import fs from 'fs-extra';
 
 export default class OutputPatcher {
   constructor(outputPath, logger) {
@@ -49,7 +49,7 @@ export default class OutputPatcher {
     patch.forEach(([op, path, entry]) => {
       switch (op) {
         case 'mkdir':
-          fs.mkdirSync(outputPath + '/' + path);
+          fs.mkdirpSync(outputPath + '/' + path);
           break;
         case 'rmdir':
           fs.rmdirSync(outputPath + '/' + path);
