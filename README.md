@@ -5,10 +5,10 @@ Broccoli-rollup is a simple wrapper around [Rollup](https://github.com/rollup/ro
 #### basic
 
 ```js
-var rollup = require('broccoli-rollup');
+var Rollup = require('broccoli-rollup');
 var lib = 'lib';
 
-module.exports = rollup(lib, {
+module.exports = new Rollup(lib, {
   rollup: {
     entry: 'lib/index.js',
     dest: 'my-lib.js'
@@ -19,10 +19,10 @@ module.exports = rollup(lib, {
 #### \w targets
 
 ```js
-var rollup = require('broccoli-rollup');
+var Rollup = require('broccoli-rollup');
 var lib = 'lib';
 
-module.exports = rollup(lib, {
+module.exports = new Rollup(lib, {
   rollup: {
     entry: 'lib/index.js',
     targets: [
