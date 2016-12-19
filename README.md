@@ -1,6 +1,6 @@
 # Usage
 
-Broccoli-rollup is a simple wrapper around [Rollup](https://github.com/rollup/rollup). In the options object pass the rollup options.
+Broccoli-rollup is a simple wrapper around [Rollup](https://github.com/rollup/rollup). In the options object pass the [rollup options](https://github.com/rollup/rollup/wiki/JavaScript-API#rolluprollup-options-).
 
 #### basic
 
