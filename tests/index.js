@@ -42,9 +42,8 @@ describe('BroccoliRollup', function() {
 
     it('simple', async function() {
       const { directory } = await pipeline.build();
-
       expect(file(directory + '/out.js'))
-        .to.equal('var add = x => x + x;\n\nconst two = add(1);\n\nexport default two;');
+        .to.equal('var add = x => x + x;\n\nconst two = add(1);\n\nexport default two;\n');
     });
 
     describe('rebuild', function() {
@@ -59,12 +58,12 @@ describe('BroccoliRollup', function() {
         fixture.writeSync(input, { 'minus.js':  'export default x => x - x;' });
 
         expect(file(directory + '/out.js'))
-          .to.equal('var add = x => x + x;\n\nconst two = add(1);\n\nexport default two;');
+          .to.equal('var add = x => x + x;\n\nconst two = add(1);\n\nexport default two;\n');
 
         await pipeline.build();
 
         expect(file(directory + '/out.js'))
-          .to.equal('var add = x => x + x;\n\nconst two = add(1);\n\nexport default two;');
+          .to.equal('var add = x => x + x;\n\nconst two = add(1);\n\nexport default two;\n');
 
         fixture.writeSync(input, {
           'index.js': 'import add from "./add"; import minus from "./minus"; export default { a: add(1), b: minus(1) };'
@@ -73,7 +72,7 @@ describe('BroccoliRollup', function() {
         await pipeline.build();
 
         expect(file(directory + '/out.js'))
-          .to.equal('var add = x => x + x;\n\nvar minus = x => x - x;\n\nvar index = { a: add(1), b: minus(1) };\n\nexport default index;');
+          .to.equal('var add = x => x + x;\n\nvar minus = x => x - x;\n\nvar index = { a: add(1), b: minus(1) };\n\nexport default index;\n');
 
         fixture.writeSync(input, { 'minus.js':  null });
 
@@ -93,7 +92,7 @@ describe('BroccoliRollup', function() {
         await pipeline.build();
 
         expect(file(directory + '/out.js'))
-          .to.equal('var add = x => x + x;\n\nvar index = add(1);\n\nexport default index;');
+          .to.equal('var add = x => x + x;\n\nvar index = add(1);\n\nexport default index;\n');
       });
 
       describe('stability', function(){
@@ -165,7 +164,7 @@ const two = add(1);
 
 return two;
 
-})));`);
+})));\n`);
 
     });
 
@@ -204,6 +203,7 @@ return two;
 const two = add(1);
 
 export default two;
+
 //# sourceMappingURL=out.js.map
 `);
 
@@ -223,7 +223,7 @@ const two = add(1);
 
 return two;
 
-})));`);
+})));\n`);
 
 
     });
