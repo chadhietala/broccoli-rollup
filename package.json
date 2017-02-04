@@ -25,6 +25,9 @@
     "dist/",
     "!dist/tests"
   ],
+  "engines" : {
+    "node" : ">=4.0"
+  },
   "devDependencies": {
     "broccoli": "^0.16.9",
     "broccoli-babel-transpiler": "^5.6.0",
