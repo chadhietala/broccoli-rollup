@@ -15,7 +15,7 @@ const { file } = chaiFiles;
 chai.use(chaiFiles);
 
 
-describe('some issue with merge trees', function() {
+describe('Staging files smoke tests', function() {
   let input1 = 'tmp/fixture-input-1';
   let input2 = 'tmp/fixture-input-2';
   let node;
@@ -26,7 +26,7 @@ describe('some issue with merge trees', function() {
     fs.mkdirpSync(input2);
     fixture.writeSync(input1, {
       'add.js': 'export const add = num => num++;',
-      'index.js': 'import { two } from "./two"; import { add } from "./add"; const result = add(two); export default result;'
+      'index.js': 'import two from "./two"; import { add } from "./add"; const result = add(two); export default result;'
     });
 
     fixture.writeSync(input2, {
@@ -49,12 +49,12 @@ describe('some issue with merge trees', function() {
     return pipeline.cleanup();
   });
 
-  it('fails', async function() {
+  it('handles merged trees and building from staging', async function() {
     const { directory } = await pipeline.build();
+    expect(file(directory + '/out.js'))
+        .to.equal('const minus = num => num--;\n\nconst two = minus(3);\n\nconst add = num => num++;\n\nconst result = add(two);\n\nexport default result;\n');
   });
-
 });
-
 
 describe('BroccoliRollup', function() {
   const input = 'tmp/fixture-input';

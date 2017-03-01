@@ -3,11 +3,28 @@ import path from 'path';
 import { default as _logger } from 'heimdalljs-logger';
 import heimdall from 'heimdalljs';
 import OutputPatcher from './output-patcher';
+import FSTree from 'fs-tree-diff';
+import {
+  mkdirSync,
+  rmdirSync,
+  unlinkSync,
+  writeFileSync,
+  readFileSync
+} from 'fs';
+import { tmpdir } from 'os';
+import { entries } from 'walk-sync';
+import { sync as symlinkOrCopySync } from 'symlink-or-copy';
+import nodeModulesPath from 'node-modules-path';
 
 // rollup requires this, so old version of node need it
 import 'es6-map/implement';
 
 const logger = _logger('broccoli-rollup');
+
+function deref(srcPath, destPath) {
+  let content = readFileSync(srcPath);
+  writeFileSync(destPath, content);
+}
 
 export default class Rollup extends Plugin {
   constructor(node, options = {}) {
@@ -19,11 +36,42 @@ export default class Rollup extends Plugin {
     this.rollupOptions  = options.rollup || {};
     this._lastBundle = null;
     this._output = null;
+    this.lastTree = FSTree.fromEntries([]);
+    this.linkedModules = false;
   }
 
   build() {
+    let { lastTree, linkedModules } = this;
+
+    if (!linkedModules) {
+      symlinkOrCopySync(nodeModulesPath(process.cwd()), `${this.cachePath}/node_modules`);
+      this.linkedModules = true;
+    }
+
+    let newTree = this.lastTree = FSTree.fromEntries(entries(this.inputPaths[0]));
+    let patches = lastTree.calculatePatch(newTree);
+
+    patches.forEach(([op, relativePath]) => {
+      switch(op) {
+        case 'mkdir':
+          mkdirSync(`${this.cachePath}/${relativePath}`);
+        case 'unlink':
+          unlinkSync(`${this.cachePath}/${relativePath}`);
+          break;
+        case 'rmdir':
+          rmdirSync(`${this.cachePath}/${relativePath}`);
+          break;
+        case 'create':
+          deref(`${this.inputPaths[0]}/${relativePath}`, `${this.cachePath}/${relativePath}`);
+          break;
+        case 'change':
+          deref(`${this.inputPaths[0]}/${relativePath}`, `${this.cachePath}/${relativePath}`);
+          break;
+      }
+    });
+
     let options = this._loadOptions();
-    options.entry = this.inputPaths[0] + '/' + options.entry;
+    options.entry = this.cachePath + '/' + options.entry;
     return heimdall.node('rollup', () => {
       return require('rollup').rollup(options)
         .then(bundle => {
@@ -63,9 +111,9 @@ export default class Rollup extends Plugin {
     // ensures "file" entry and relative "sources" entries
     // are correct in the source map.
     if (sourceMapFile) {
-      options.sourceMapFile = this.inputPaths[0] + '/' + sourceMapFile;
+      options.sourceMapFile = this.cachePath + '/' + sourceMapFile;
     } else {
-      options.sourceMapFile = this.inputPaths[0] + '/' + dest;
+      options.sourceMapFile = this.cachePath + '/' + dest;
     }
 
     let { code, map } = bundle.generate(options);
