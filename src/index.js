@@ -55,6 +55,7 @@ export default class Rollup extends Plugin {
       switch(op) {
         case 'mkdir':
           mkdirSync(`${this.cachePath}/${relativePath}`);
+          break;
         case 'unlink':
           unlinkSync(`${this.cachePath}/${relativePath}`);
           break;
