@@ -7,11 +7,54 @@ import fixture from 'fixturify';
 import Rollup from '../';
 import broccoli from 'broccoli';
 import fs from 'fs-extra';
+import MergeTrees from 'broccoli-merge-trees';
 
 const { expect } = chai;
 const { file } = chaiFiles;
 
 chai.use(chaiFiles);
+
+
+describe('Staging files smoke tests', function() {
+  let input1 = 'tmp/fixture-input-1';
+  let input2 = 'tmp/fixture-input-2';
+  let node;
+  let pipeline;
+
+  beforeEach(function() {
+    fs.mkdirpSync(input1);
+    fs.mkdirpSync(input2);
+    fixture.writeSync(input1, {
+      'add.js': 'export const add = num => num++;',
+      'index.js': 'import two from "./two"; import { add } from "./add"; const result = add(two); export default result;'
+    });
+
+    fixture.writeSync(input2, {
+      'minus.js': 'export const minus = num => num--;',
+      'two.js': 'import { minus } from "./minus"; const two = minus(3); export default two;'
+    });
+
+    node = new Rollup(new MergeTrees([input1, input2]), {
+      rollup: {
+        entry: 'index.js',
+        dest: 'out.js'
+      }
+    });
+    pipeline = new broccoli.Builder(node);
+  });
+
+  afterEach(function() {
+    fs.removeSync(input1);
+    fs.removeSync(input2);
+    return pipeline.cleanup();
+  });
+
+  it('handles merged trees and building from staging', async function() {
+    const { directory } = await pipeline.build();
+    expect(file(directory + '/out.js'))
+        .to.equal('const minus = num => num--;\n\nconst two = minus(3);\n\nconst add = num => num++;\n\nconst result = add(two);\n\nexport default result;\n');
+  });
+});
 
 describe('BroccoliRollup', function() {
   const input = 'tmp/fixture-input';
