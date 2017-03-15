@@ -34,6 +34,7 @@ export default class Rollup extends Plugin {
       persistentOutput: true
     });
     this.rollupOptions  = options.rollup || {};
+    this._useRollupCache = options.useRollupCache === undefined ? true : options.useRollupCache;
     this._lastBundle = null;
     this._output = null;
     this.lastTree = FSTree.fromEntries([]);
@@ -76,7 +77,9 @@ export default class Rollup extends Plugin {
     return heimdall.node('rollup', () => {
       return require('rollup').rollup(options)
         .then(bundle => {
-          this._lastBundle = bundle;
+          if (this._useRollupCache) {
+            this._lastBundle = bundle;
+          }
           this._buildTargets(bundle, options);
         });
     });
@@ -84,8 +87,9 @@ export default class Rollup extends Plugin {
 
   _loadOptions() {
     // TODO: support rollup config files
-    let options = assign({}, this.rollupOptions);
-    options.cache = this._lastBundle;
+    let options = assign({
+      cache: this._lastBundle
+    }, this.rollupOptions);
     return options;
   }
 
