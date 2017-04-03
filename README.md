@@ -11,7 +11,8 @@ var lib = 'lib';
 module.exports = new Rollup(lib, {
   rollup: {
     entry: 'lib/index.js',
-    dest: 'my-lib.js'
+    dest: 'my-lib.js',
+    // cache: true|false Defaults to true
   }
 })
 ```
