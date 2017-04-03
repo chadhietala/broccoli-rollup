@@ -71,6 +71,9 @@ export default class Rollup extends Plugin {
       }
     });
 
+    // If this a noop post initial build, just bail out
+    if (this._lastBundle && patches.length === 0) { return }
+
     let options = this._loadOptions();
     options.entry = this.cachePath + '/' + options.entry;
     return heimdall.node('rollup', () => {
