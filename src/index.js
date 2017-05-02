@@ -39,13 +39,19 @@ export default class Rollup extends Plugin {
     this.lastTree = FSTree.fromEntries([]);
     this.linkedModules = false;
     this.cache = options.cache === undefined ? true : options.cache;
+
+    if ('nodeModulesPath' in options && !path.isAbsolute(options.nodeModulesPath)) {
+      throw new Error(`nodeModulesPath must be fully qualified and you passed a relative path`);
+    }
+
+    this.nodeModulesPath = options.nodeModulesPath || nodeModulesPath(process.cwd());
   }
 
   build() {
     let { lastTree, linkedModules } = this;
 
     if (!linkedModules) {
-      symlinkOrCopySync(nodeModulesPath(process.cwd()), `${this.cachePath}/node_modules`);
+      symlinkOrCopySync(this.nodeModulesPath, `${this.cachePath}/node_modules`);
       this.linkedModules = true;
     }
 
