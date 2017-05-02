@@ -270,5 +270,19 @@ return two;
 
 
     });
-  })
+  });
+
+  describe('passing nodeModulesPath', function() {
+    it('should throw if nodeModulesPath is relative', function() {
+      expect(function() {
+        new Rollup('lib', {
+          nodeModulesPath: './',
+          rollup: {
+            entry: 'index.js',
+            dest: 'out.js'
+          }
+        });
+      }).to.throw(/nodeModulesPath must be fully qualified and you passed a relative path/);
+    });
+  });
 });

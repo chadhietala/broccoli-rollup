@@ -9,6 +9,7 @@ var Rollup = require('broccoli-rollup');
 var lib = 'lib';
 
 module.exports = new Rollup(lib, {
+  // nodeModulesPath: string Defaults to process.cwd()
   rollup: {
     entry: 'lib/index.js',
     dest: 'my-lib.js',
