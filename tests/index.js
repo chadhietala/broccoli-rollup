@@ -251,7 +251,7 @@ export default two;
 `);
 
       expect(file(directory + '/dist/out.js.map'))
-        .to.equal('{"version":3,"file":"out.js","sources":["../add.js","../index.js"],"sourcesContent":["export default x => x + x;","import add from \\"./add\\"; const two = add(1); export default two;"],"names":[],"mappings":"AAAA,UAAe,CAAC,IAAI,CAAC,GAAG,CAAC;;ACAA,MAAM,GAAG,GAAG,GAAG,CAAC,CAAC,CAAC,CAAC,AAAC,;;"}');
+        .to.equal('{"version":3,"file":"out.js","sources":["../add.js","../index.js"],"sourcesContent":["export default x => x + x;","import add from \\"./add\\"; const two = add(1); export default two;"],"names":[],"mappings":"AAAA,UAAe,CAAC,IAAI,CAAC,GAAG,CAAC;;qBAAC,rBCAD,MAAM,GAAG,GAAG,GAAG,CAAC,CAAC,CAAC;;;;"}');
 
       expect(file(directory + '/dist/out.umd.js'))
         .to.equal(`(function (global, factory) {
