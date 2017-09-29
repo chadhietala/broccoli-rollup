@@ -9,7 +9,10 @@ import {
   rmdirSync,
   unlinkSync,
   writeFileSync,
-  readFileSync
+  readFileSync,
+  copyFileSync,
+  existsSync,
+  constants as fsConstants
 } from 'fs';
 import { tmpdir } from 'os';
 import { entries } from 'walk-sync';
@@ -21,10 +24,18 @@ import 'es6-map/implement';
 
 const logger = _logger('broccoli-rollup');
 
-function deref(srcPath, destPath) {
-  let content = readFileSync(srcPath);
-  writeFileSync(destPath, content);
-}
+const deref = typeof copyFileSync === 'function' ?
+  (srcPath, destPath) => {
+    if (existsSync(destPath)) {
+      unlinkSync(destPath);
+    }
+
+    copyFileSync(srcPath, destPath, fsConstants.COPYFILE_EXCL);
+  } :
+  (srcPath, destPath) => {
+    let content = readFileSync(srcPath);
+    writeFileSync(destPath, content);
+  };
 
 export default class Rollup extends Plugin {
   constructor(node, options = {}) {
