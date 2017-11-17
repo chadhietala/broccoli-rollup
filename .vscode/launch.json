@@ -1,0 +1,27 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceRoot}/dist/tests/index.js",
+      "stopOnEntry": false,
+      "args": [],
+      "cwd": "${workspaceRoot}",
+      "preLaunchTask": "build",
+      "runtimeExecutable": null,
+      "runtimeArgs": [
+        "--nolazy",
+        "${workspaceRoot}/node_modules/qunit/bin/qunit"
+      ],
+      "env": {
+        "NODE_ENV": "development"
+      },
+      "sourceMaps": true,
+      "outFiles": [
+        "${workspaceRoot}/dist/*.js"
+      ]
+    }
+  ]
+}

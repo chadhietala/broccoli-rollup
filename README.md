@@ -11,8 +11,11 @@ var lib = 'lib';
 module.exports = new Rollup(lib, {
   // nodeModulesPath: string Defaults to process.cwd()
   rollup: {
-    entry: 'lib/index.js',
-    dest: 'my-lib.js',
+    input: 'lib/index.js',
+    output: {
+      file: 'my-lib.js',
+      format: 'es',
+    },
     // cache: true|false Defaults to true
   }
 })
@@ -26,14 +29,14 @@ var lib = 'lib';
 
 module.exports = new Rollup(lib, {
   rollup: {
-    entry: 'lib/index.js',
-    targets: [
+    input: 'lib/index.js',
+    output: [
       {
-        dest: 'my-lib.amd.js'
+        file: 'my-lib.amd.js'
         format: 'amd',
       },
       {
-        dest: 'my-lib.iife.js'
+        file: 'my-lib.iife.js'
         format: 'iife',
       }
     ]
