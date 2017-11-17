@@ -1,76 +1,94 @@
-import Plugin from 'broccoli-plugin';
-import path from 'path';
-import { default as _logger } from 'heimdalljs-logger';
-import heimdall from 'heimdalljs';
-import OutputPatcher from './output-patcher';
-import FSTree from 'fs-tree-diff';
 import {
+  constants as fsConstants,
+  copyFileSync,
+  existsSync,
   mkdirSync,
+  readFileSync,
   rmdirSync,
   unlinkSync,
   writeFileSync,
-  readFileSync,
-  copyFileSync,
-  existsSync,
-  constants as fsConstants
 } from 'fs';
 import { tmpdir } from 'os';
-import { entries } from 'walk-sync';
-import { sync as symlinkOrCopySync } from 'symlink-or-copy';
-import nodeModulesPath from 'node-modules-path';
+import * as path from 'path';
+import { Bundle, ConfigFileOptions, GenerateOptions, SourceMap, WriteOptions } from 'rollup';
+import { instrument, logger } from './lib/heimdall';
+import OutputPatcher from './lib/output-patcher';
+import Plugin from './lib/plugin';
+import { IEntry, ITree, treeFromEntries, treeFromPath } from './lib/tree-diff';
 
-// rollup requires this, so old version of node need it
-import 'es6-map/implement';
-
-const logger = _logger('broccoli-rollup');
+// tslint:disable-next-line:no-var-requires
+const symlinkOrCopySync: (src: string, dst: string) => void = require('symlink-or-copy').sync;
+// tslint:disable-next-line:no-var-requires
+const nodeModulesPath: (cwd: string) => string = require('node-modules-path');
 
 const deref = typeof copyFileSync === 'function' ?
-  (srcPath, destPath) => {
-    if (existsSync(destPath)) {
-      unlinkSync(destPath);
+(srcPath: string, destPath: string) => {
+  try {
+    unlinkSync(destPath);
+  } catch (e) {
+    if (e.code !== 'ENOENT') {
+      throw e;
     }
+  }
+  copyFileSync(srcPath, destPath, fsConstants.COPYFILE_EXCL);
+} :
+(srcPath: string, destPath: string) => {
+  const content = readFileSync(srcPath);
+  writeFileSync(destPath, content);
+};
 
-    copyFileSync(srcPath, destPath, fsConstants.COPYFILE_EXCL);
-  } :
-  (srcPath, destPath) => {
-    let content = readFileSync(srcPath);
-    writeFileSync(destPath, content);
-  };
+export = class Rollup extends Plugin {
+  public rollupOptions: ConfigFileOptions;
+  public cache: boolean;
+  public linkedModules: boolean;
+  public nodeModulesPath: string;
 
-export default class Rollup extends Plugin {
-  constructor(node, options = {}) {
+  private _lastBundle: Bundle | null;
+  private lastTree: ITree;
+  private _output: OutputPatcher | null;
+
+  constructor(node: any, options: {
+    annotation?: string;
+    name?: string;
+    rollup: ConfigFileOptions;
+    cache?: boolean;
+    nodeModulesPath?: string;
+  }) {
     super([node], {
-      name: options && options.name,
-      annotation: options && options.annotation,
-      persistentOutput: true
+      annotation: options.annotation,
+      name: options.name,
+      persistentOutput: true,
     });
-    this.rollupOptions  = options.rollup || {};
+    this.rollupOptions = options.rollup;
     this._lastBundle = null;
     this._output = null;
-    this.lastTree = FSTree.fromEntries([]);
+    this.lastTree = treeFromEntries([]);
     this.linkedModules = false;
     this.cache = options.cache === undefined ? true : options.cache;
 
-    if ('nodeModulesPath' in options && !path.isAbsolute(options.nodeModulesPath)) {
+    if (options.nodeModulesPath !== undefined && !path.isAbsolute(options.nodeModulesPath)) {
       throw new Error(`nodeModulesPath must be fully qualified and you passed a relative path`);
     }
 
     this.nodeModulesPath = options.nodeModulesPath || nodeModulesPath(process.cwd());
   }
 
-  build() {
-    let { lastTree, linkedModules } = this;
+  public build() {
+    const lastTree = this.lastTree;
+    const linkedModules = this.linkedModules;
 
     if (!linkedModules) {
       symlinkOrCopySync(this.nodeModulesPath, `${this.cachePath}/node_modules`);
       this.linkedModules = true;
     }
 
-    let newTree = this.lastTree = FSTree.fromEntries(entries(this.inputPaths[0]));
-    let patches = lastTree.calculatePatch(newTree);
+    const newTree = this.lastTree = treeFromPath(this.inputPaths[0]);
+    const patches = lastTree.calculatePatch(newTree);
 
-    patches.forEach(([op, relativePath]) => {
-      switch(op) {
+    patches.forEach((change) => {
+      const op = change[0];
+      const relativePath = change[1];
+      switch (op) {
         case 'mkdir':
           mkdirSync(`${this.cachePath}/${relativePath}`);
           break;
@@ -90,82 +108,89 @@ export default class Rollup extends Plugin {
     });
 
     // If this a noop post initial build, just bail out
-    if (this._lastBundle && patches.length === 0) { return }
+    if (this._lastBundle && patches.length === 0) { return; }
 
-    let options = this._loadOptions();
-    options.entry = this.cachePath + '/' + options.entry;
-    return heimdall.node('rollup', () => {
+    const options = this._loadOptions();
+    options.input = this.cachePath + '/' + options.input;
+    return instrument('rollup', () => {
       return require('rollup').rollup(options)
-        .then(bundle => {
+        .then((bundle: Bundle) => {
           if (this.cache) {
             this._lastBundle = bundle;
           }
-          this._buildTargets(bundle, options);
+          return this._buildTargets(bundle, options);
         });
     });
   }
 
-  _loadOptions() {
+  private _loadOptions(): ConfigFileOptions {
     // TODO: support rollup config files
-    let options = Object.assign({
-      cache: this._lastBundle
+    const options = Object.assign({
+      cache: this._lastBundle,
     }, this.rollupOptions);
     return options;
   }
 
-  _targetsFor(options) {
-    if (options.dest) {
-      return [options];
-    }
-    if (options.targets) {
-      return options.targets.map(target => Object.assign({}, options, target));
-    }
-    throw new Error('missing targets or dest in options');
+  private _targetsFor(options: ConfigFileOptions): WriteOptions[] {
+    return Array.isArray(options.output) ? options.output : [options.output];
   }
 
-  _buildTargets(bundle, options) {
-    let output = this._getOutput();
-    this._targetsFor(options).forEach(options => {
-      this._buildTarget(bundle, options, output);
-    });
+  private async _buildTargets(bundle: Bundle, options: ConfigFileOptions) {
+    const output = this._getOutput();
+
+    const targets = this._targetsFor(options);
+    for (let i = 0; i < targets.length; i++) {
+      await this._buildTarget(bundle, targets[i], output);
+    }
+
     output.patch();
   }
 
-  _buildTarget(bundle, options, output) {
-    let { dest, sourceMap, sourceMapFile } = options;
+  private async _buildTarget(bundle: Bundle, options: WriteOptions, output: OutputPatcher) {
+    // const { dest, sourceMap, sourceMapFile } = options;
+    const file = options.file;
+    const sourcemap = options.sourcemap;
+    const sourcemapFile = options.sourcemapFile;
+
     // ensures "file" entry and relative "sources" entries
     // are correct in the source map.
-    if (sourceMapFile) {
-      options.sourceMapFile = this.cachePath + '/' + sourceMapFile;
+    if (sourcemapFile) {
+      options.sourcemapFile = this.cachePath + '/' + sourcemapFile;
     } else {
-      options.sourceMapFile = this.cachePath + '/' + dest;
+      options.sourcemapFile = this.cachePath + '/' + file;
     }
 
-    let { code, map } = bundle.generate(options);
-    if (sourceMap) {
+    const result = await bundle.generate(Object.assign({}, options, {
+      sourcemap: !!sourcemap,
+    }));
+
+    let code = result.code;
+    const map = result.map;
+
+    if (sourcemap && map !== null) {
       let url;
-      if (sourceMap === 'inline') {
+      if (sourcemap === 'inline') {
         url = map.toUrl();
       } else {
-        url = this._addSourceMap(map, dest, output);
+        url = this._addSourceMap(map, file, output);
       }
-      code += '\n//# sourceMap';
-      code += `pingURL=${url}\n`;
+      code += '//# sourceMap';
+      code += `pingURL=${url}`;
     }
-    output.add(dest, code);
+    output.add(file, code);
   }
 
-  _addSourceMap(map, relativePath, output) {
-    let url = path.basename(relativePath) + '.map';
+  private _addSourceMap(map: SourceMap, relativePath: string, output: OutputPatcher) {
+    const url = path.basename(relativePath) + '.map';
     output.add(relativePath + '.map', map.toString());
     return url;
   }
 
-  _getOutput() {
+  private _getOutput() {
     let output = this._output;
     if (!output) {
       output = this._output = new OutputPatcher(this.outputPath, logger);
     }
     return output;
   }
-}
+};
