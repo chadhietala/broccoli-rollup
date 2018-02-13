@@ -90,11 +90,11 @@ export default class OutputPatcher {
 // tslint:disable-next-line:max-classes-per-file
 class Entry implements IEntry {
   public relativePath: string;
-  public basePath: string;
-  public fullPath: string;
+  public basePath: string = '';
+  public fullPath: string = '';
   public mode: number;
-  public size: number;
-  public mtime: Date;
+  public size: number = -1;
+  public mtime: Date | undefined;
 
   constructor(relativePath: string) {
     this.relativePath = relativePath;

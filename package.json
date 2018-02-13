@@ -41,20 +41,21 @@
     "@types/qunit": "^2.0.31",
     "broccoli-merge-trees": "^2.0.0",
     "broccoli-test-helper": "^1.2.0",
-    "nyc": "^11.3.0",
-    "qunit": "^2.4.1",
-    "tslint": "^5.8.0",
-    "typescript": "^2.6.1"
+    "nyc": "^11.4.1",
+    "qunit": "^2.5.0",
+    "tslint": "^5.9.1",
+    "typescript": "^2.6.2"
   },
   "dependencies": {
-    "@types/node": "^8.0.53",
-    "@types/rollup": "^0.51.0",
+    "@types/node": "^9.4.5",
+    "amd-name-resolver": "^1.2.0",
     "broccoli-plugin": "^1.2.1",
     "fs-tree-diff": "^0.5.2",
     "heimdalljs": "^0.2.1",
     "heimdalljs-logger": "^0.1.7",
+    "magic-string": "^0.22.4",
     "node-modules-path": "^1.0.1",
-    "rollup": "^0.51.6",
+    "rollup": "^0.55.5",
     "symlink-or-copy": "^1.1.8",
     "walk-sync": "^0.3.1"
   }
