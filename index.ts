@@ -192,8 +192,8 @@ export = class Rollup extends Plugin {
   }
 
   private _writeFile(filePath: string, sourcemap: boolean | 'inline', result: IGeneratedResult, output: OutputPatcher) {
-    let { code } = result;
-    const { map } = result;
+    let code = result.code;
+    const map = result.map;
     if (sourcemap && map !== null) {
       let url;
       if (sourcemap === 'inline') {
