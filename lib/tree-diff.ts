@@ -26,7 +26,7 @@ export interface IEntry {
   fullPath: string;
   mode: number;
   size: number;
-  mtime: Date;
+  mtime: Date | undefined;
   isDirectory(): boolean;
 }
 

@@ -10,10 +10,12 @@ import {
 } from 'fs';
 import { tmpdir } from 'os';
 import * as path from 'path';
-import { Bundle, ConfigFileOptions, GenerateOptions, SourceMap, WriteOptions } from 'rollup';
+import { InputOptions, OutputChunk, OutputOptions } from 'rollup';
 import { instrument, logger } from './lib/heimdall';
 import OutputPatcher from './lib/output-patcher';
 import Plugin from './lib/plugin';
+import resolver from './lib/resolver';
+import { IGeneratedResult, IRollupOptions } from './lib/rollup';
 import { IEntry, ITree, treeFromEntries, treeFromPath } from './lib/tree-diff';
 
 // tslint:disable-next-line:no-var-requires
@@ -38,19 +40,19 @@ const deref = typeof copyFileSync === 'function' ?
 };
 
 export = class Rollup extends Plugin {
-  public rollupOptions: ConfigFileOptions;
+  public rollupOptions: IRollupOptions;
   public cache: boolean;
   public linkedModules: boolean;
   public nodeModulesPath: string;
 
-  private _lastBundle: Bundle | null;
+  private _lastChunk: OutputChunk | null;
   private lastTree: ITree;
   private _output: OutputPatcher | null;
 
   constructor(node: any, options: {
     annotation?: string;
     name?: string;
-    rollup: ConfigFileOptions;
+    rollup: IRollupOptions;
     cache?: boolean;
     nodeModulesPath?: string;
   }) {
@@ -60,7 +62,7 @@ export = class Rollup extends Plugin {
       persistentOutput: true,
     });
     this.rollupOptions = options.rollup;
-    this._lastBundle = null;
+    this._lastChunk = null;
     this._output = null;
     this.lastTree = treeFromEntries([]);
     this.linkedModules = false;
@@ -108,79 +110,105 @@ export = class Rollup extends Plugin {
     });
 
     // If this a noop post initial build, just bail out
-    if (this._lastBundle && patches.length === 0) { return; }
+    if (this._lastChunk && patches.length === 0) { return; }
 
     const options = this._loadOptions();
-    options.input = this.cachePath + '/' + options.input;
+    options.input = this._mapInput(options.input);
     return instrument('rollup', () => {
       return require('rollup').rollup(options)
-        .then((bundle: Bundle) => {
+        .then((chunk: OutputChunk) => {
           if (this.cache) {
-            this._lastBundle = bundle;
+            this._lastChunk = chunk;
           }
-          return this._buildTargets(bundle, options);
+          return this._buildTargets(chunk, options);
         });
     });
   }
 
-  private _loadOptions(): ConfigFileOptions {
+  private _mapInput(input: string | string[]) {
+    if (Array.isArray(input)) {
+      return input.map((entry) => `${this.cachePath}/${entry}`);
+    }
+
+    return `${this.cachePath}/${input}`;
+  }
+
+  private _loadOptions(): IRollupOptions {
     // TODO: support rollup config files
     const options = Object.assign({
-      cache: this._lastBundle,
+      cache: this._lastChunk,
     }, this.rollupOptions);
     return options;
   }
 
-  private _targetsFor(options: ConfigFileOptions): WriteOptions[] {
+  private _targetsFor(options: IRollupOptions): OutputOptions[] {
     return Array.isArray(options.output) ? options.output : [options.output];
   }
 
-  private async _buildTargets(bundle: Bundle, options: ConfigFileOptions) {
+  private async _buildTargets(chunk: OutputChunk, options: IRollupOptions) {
     const output = this._getOutput();
 
     const targets = this._targetsFor(options);
     for (let i = 0; i < targets.length; i++) {
-      await this._buildTarget(bundle, targets[i], output);
+      await this._buildTarget(chunk, targets[i], output);
     }
 
     output.patch();
   }
 
-  private async _buildTarget(bundle: Bundle, options: WriteOptions, output: OutputPatcher) {
-    // const { dest, sourceMap, sourceMapFile } = options;
-    const file = options.file;
-    const sourcemap = options.sourcemap;
-    const sourcemapFile = options.sourcemapFile;
+  private async _buildTarget(chunk: OutputChunk, options: OutputOptions, output: OutputPatcher) {
+    let generateOptions;
 
-    // ensures "file" entry and relative "sources" entries
-    // are correct in the source map.
+    if (this.rollupOptions.experimentalCodeSplitting) {
+      const results = await chunk.generate(Object.assign({}, options, {
+        sourcemap: !!options.sourcemap,
+      })) as any;
+
+      Object.keys(results).forEach((file) => {
+        const fileName = resolver.moduleResolve(file, options.dir! + '/');
+        this._writeFile(fileName, options.sourcemap!, results[file] as IGeneratedResult, output);
+      });
+
+    } else {
+      generateOptions = this._generateSourceMapOptions(options);
+      const result = await chunk.generate(generateOptions);
+      this._writeFile(options.file!, options.sourcemap!, result, output);
+    }
+  }
+
+  private _generateSourceMapOptions(options: OutputOptions): OutputOptions {
+    const sourcemap = options.sourcemap;
+    const file = options.file;
+    const sourcemapFile = options.sourcemapFile;
     if (sourcemapFile) {
       options.sourcemapFile = this.cachePath + '/' + sourcemapFile;
     } else {
       options.sourcemapFile = this.cachePath + '/' + file;
     }
 
-    const result = await bundle.generate(Object.assign({}, options, {
+    return Object.assign({}, options, {
       sourcemap: !!sourcemap,
-    }));
+    });
+  }
 
+  private _writeFile(filePath: string, sourcemap: boolean | 'inline', result: IGeneratedResult, output: OutputPatcher) {
     let code = result.code;
     const map = result.map;
-
     if (sourcemap && map !== null) {
       let url;
       if (sourcemap === 'inline') {
         url = map.toUrl();
       } else {
-        url = this._addSourceMap(map, file, output);
+        url = this._addSourceMap(map, filePath, output);
       }
       code += '//# sourceMap';
       code += `pingURL=${url}`;
     }
-    output.add(file, code);
+
+    output.add(filePath, code);
   }
 
-  private _addSourceMap(map: SourceMap, relativePath: string, output: OutputPatcher) {
+  private _addSourceMap(map: any, relativePath: string, output: OutputPatcher) {
     const url = path.basename(relativePath) + '.map';
     output.add(relativePath + '.map', map.toString());
     return url;

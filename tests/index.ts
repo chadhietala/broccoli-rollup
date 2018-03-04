@@ -261,6 +261,61 @@ return two;
       }), new Error('nodeModulesPath must be fully qualified and you passed a relative path'));
     });
   });
+
+  describe('tree shaking', () => {
+    it('can code split', async (assert) => {
+      await using(async (use) => {
+        const input = use(await createTempDir());
+        const subject = new Rollup(input.path(), {
+          rollup: {
+            experimentalCodeSplitting: true,
+            input: ['a.js', 'b.js'],
+            output: {
+              dir: 'chunks',
+              format: 'es',
+            },
+          },
+        });
+
+        const output = use(createBuilder(subject));
+
+        input.write({
+          'a.js': 'import c from "./c"; import e from "./e"; export const out = c + e;',
+          'b.js': 'import d from "./d";import e from "./e"; export const out = d + e;',
+          'c.js': 'const num1 = 1; export default num1;',
+          'd.js': 'const num2 = 2; export default num2;',
+          'e.js': 'const num3 = 3; export default num3;',
+        });
+
+        await output.build();
+
+        assert.deepEqual(output.read(), {
+          chunks: {
+            'a.js': `import { e as num3 } from './chunk1.js';
+
+const num1 = 1;
+
+const out = num1 + num3;
+
+export { out };
+`,
+            'b.js': `import { e as num3 } from './chunk1.js';
+
+const num2 = 2;
+
+const out = num2 + num3;
+
+export { out };
+`,
+            'chunk1.js': `const num3 = 3;
+
+export { num3 as e };
+`,
+          },
+        });
+      });
+    });
+  });
 });
 
 type UseCallback = <T extends Disposable>(disposable: T) => T;
