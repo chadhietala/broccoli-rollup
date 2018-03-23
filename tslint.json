@@ -1,17 +1,16 @@
 {
-    "defaultSeverity": "error",
-    "extends": [
-        "tslint:recommended"
-    ],
-    "jsRules": {},
-    "rules": {
-        "quotemark": {
-            "options": ["avoid-escape", "single"]
-        },
-        "variable-name": {
-            "options": "allow-leading-underscore"
-        },
-        "prefer-for-of": false
+  "defaultSeverity": "error",
+  "extends": ["tslint:recommended"],
+  "jsRules": {},
+  "rules": {
+    "quotemark": {
+      "options": ["avoid-escape", "single"]
     },
-    "rulesDirectory": []
+    "variable-name": {
+      "options": "allow-leading-underscore"
+    },
+    "prefer-for-of": false,
+    "arrow-parens": false
+  },
+  "rulesDirectory": []
 }

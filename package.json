@@ -5,14 +5,12 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "rm -rf dist && tsc",
-    "test": "npm run build && nyc --check-coverage --functions 90 --lines 90 --statements 90 -- qunit dist/tests/index.js",
+    "test":
+      "npm run build && nyc --check-coverage --functions 90 --lines 90 --statements 90 -- qunit dist/tests/index.js",
     "test:fast": "qunit dist/tests/index.js",
     "prepublish": "npm run build"
   },
-  "keywords": [
-    "broccoli",
-    "rollup"
-  ],
+  "keywords": ["broccoli", "rollup"],
   "author": "Chad Hietala <chadhietala@gmail.com>",
   "contributors": [
     {
@@ -30,10 +28,7 @@
     "url": "https://github.com/chadhietala/broccoli-rollup"
   },
   "homepage": "https://github.com/chadhietala/broccoli-rollup#readme",
-  "files": [
-    "dist/",
-    "!dist/tests"
-  ],
+  "files": ["dist/", "!dist/tests"],
   "engines": {
     "node": ">=4.0"
   },
@@ -43,23 +38,22 @@
     "@types/qunit": "^2.0.31",
     "broccoli-merge-trees": "^2.0.0",
     "broccoli-test-helper": "^1.2.0",
-    "chokidar": "^2.0.2",
-    "nyc": "^11.4.1",
+    "nyc": "^11.6.0",
     "qunit": "^2.5.0",
     "source-map": "0.6.1",
     "tslint": "^5.9.1",
     "typescript": "^2.6.2"
   },
   "dependencies": {
-    "@types/node": "^9.4.5",
+    "@types/node": "^9.6.0",
     "amd-name-resolver": "^1.2.0",
     "broccoli-plugin": "^1.2.1",
     "fs-tree-diff": "^0.5.2",
     "heimdalljs": "^0.2.1",
     "heimdalljs-logger": "^0.1.7",
-    "magic-string": "^0.22.4",
+    "magic-string": "^0.24.0",
     "node-modules-path": "^1.0.1",
-    "rollup": "^0.55.5",
+    "rollup": "^0.57.1",
     "symlink-or-copy": "^1.1.8",
     "walk-sync": "^0.3.1"
   }
