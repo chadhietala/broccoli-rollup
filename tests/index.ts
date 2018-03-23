@@ -32,6 +32,7 @@ describe('Staging files smoke tests', () => {
         'add.js': 'export const add = num => num++;',
         'index.js':
           'import two from "./two"; import { add } from "./add"; const result = add(two); export default result;',
+        node_modules: {},
       });
 
       input2.write({

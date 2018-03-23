@@ -18,44 +18,51 @@ import resolver from './lib/resolver';
 import { IGeneratedResult, IRollupOptions } from './lib/rollup';
 import { IEntry, ITree, treeFromEntries, treeFromPath } from './lib/tree-diff';
 
-// tslint:disable-next-line:no-var-requires
-const symlinkOrCopySync: (src: string, dst: string) => void = require('symlink-or-copy').sync;
-// tslint:disable-next-line:no-var-requires
+// tslint:disable:no-var-requires
+const symlinkOrCopySync: (
+  src: string,
+  dst: string,
+) => void = require('symlink-or-copy').sync;
 const nodeModulesPath: (cwd: string) => string = require('node-modules-path');
+// tslint:enable:no-var-requires
 
-const deref = typeof copyFileSync === 'function' ?
-(srcPath: string, destPath: string) => {
-  try {
-    unlinkSync(destPath);
-  } catch (e) {
-    if (e.code !== 'ENOENT') {
-      throw e;
-    }
-  }
-  copyFileSync(srcPath, destPath, fsConstants.COPYFILE_EXCL);
-} :
-(srcPath: string, destPath: string) => {
-  const content = readFileSync(srcPath);
-  writeFileSync(destPath, content);
-};
+const deref =
+  typeof copyFileSync === 'function'
+    ? (srcPath: string, destPath: string) => {
+        try {
+          unlinkSync(destPath);
+        } catch (e) {
+          if (e.code !== 'ENOENT') {
+            throw e;
+          }
+        }
+        copyFileSync(srcPath, destPath, fsConstants.COPYFILE_EXCL);
+      }
+    : (srcPath: string, destPath: string) => {
+        const content = readFileSync(srcPath);
+        writeFileSync(destPath, content);
+      };
 
 export = class Rollup extends Plugin {
   public rollupOptions: IRollupOptions;
   public cache: boolean;
-  public linkedModules: boolean;
+  public innerCachePath = '';
   public nodeModulesPath: string;
 
   private _lastChunk: OutputChunk | null;
   private lastTree: ITree;
   private _output: OutputPatcher | null;
 
-  constructor(node: any, options: {
-    annotation?: string;
-    name?: string;
-    rollup: IRollupOptions;
-    cache?: boolean;
-    nodeModulesPath?: string;
-  }) {
+  constructor(
+    node: any,
+    options: {
+      annotation?: string;
+      name?: string;
+      rollup: IRollupOptions;
+      cache?: boolean;
+      nodeModulesPath?: string;
+    },
+  ) {
     super([node], {
       annotation: options.annotation,
       name: options.name,
@@ -65,57 +72,70 @@ export = class Rollup extends Plugin {
     this._lastChunk = null;
     this._output = null;
     this.lastTree = treeFromEntries([]);
-    this.linkedModules = false;
     this.cache = options.cache === undefined ? true : options.cache;
 
-    if (options.nodeModulesPath !== undefined && !path.isAbsolute(options.nodeModulesPath)) {
-      throw new Error(`nodeModulesPath must be fully qualified and you passed a relative path`);
+    if (
+      options.nodeModulesPath !== undefined &&
+      !path.isAbsolute(options.nodeModulesPath)
+    ) {
+      throw new Error(
+        `nodeModulesPath must be fully qualified and you passed a relative path`,
+      );
     }
 
-    this.nodeModulesPath = options.nodeModulesPath || nodeModulesPath(process.cwd());
+    this.nodeModulesPath =
+      options.nodeModulesPath || nodeModulesPath(process.cwd());
   }
 
   public build() {
     const lastTree = this.lastTree;
-    const linkedModules = this.linkedModules;
 
-    if (!linkedModules) {
+    if (!this.innerCachePath) {
       symlinkOrCopySync(this.nodeModulesPath, `${this.cachePath}/node_modules`);
-      this.linkedModules = true;
+      mkdirSync((this.innerCachePath = `${this.cachePath}/build`));
     }
 
-    const newTree = this.lastTree = treeFromPath(this.inputPaths[0]);
+    const newTree = (this.lastTree = treeFromPath(this.inputPaths[0]));
     const patches = lastTree.calculatePatch(newTree);
 
-    patches.forEach((change) => {
+    patches.forEach(change => {
       const op = change[0];
       const relativePath = change[1];
       switch (op) {
         case 'mkdir':
-          mkdirSync(`${this.cachePath}/${relativePath}`);
+          mkdirSync(`${this.innerCachePath}/${relativePath}`);
           break;
         case 'unlink':
-          unlinkSync(`${this.cachePath}/${relativePath}`);
+          unlinkSync(`${this.innerCachePath}/${relativePath}`);
           break;
         case 'rmdir':
-          rmdirSync(`${this.cachePath}/${relativePath}`);
+          rmdirSync(`${this.innerCachePath}/${relativePath}`);
           break;
         case 'create':
-          deref(`${this.inputPaths[0]}/${relativePath}`, `${this.cachePath}/${relativePath}`);
+          deref(
+            `${this.inputPaths[0]}/${relativePath}`,
+            `${this.innerCachePath}/${relativePath}`,
+          );
           break;
         case 'change':
-          deref(`${this.inputPaths[0]}/${relativePath}`, `${this.cachePath}/${relativePath}`);
+          deref(
+            `${this.inputPaths[0]}/${relativePath}`,
+            `${this.innerCachePath}/${relativePath}`,
+          );
           break;
       }
     });
 
     // If this a noop post initial build, just bail out
-    if (this._lastChunk && patches.length === 0) { return; }
+    if (this._lastChunk && patches.length === 0) {
+      return;
+    }
 
     const options = this._loadOptions();
     options.input = this._mapInput(options.input);
     return instrument('rollup', () => {
-      return require('rollup').rollup(options)
+      return require('rollup')
+        .rollup(options)
         .then((chunk: OutputChunk) => {
           if (this.cache) {
             this._lastChunk = chunk;
@@ -127,17 +147,20 @@ export = class Rollup extends Plugin {
 
   private _mapInput(input: string | string[]) {
     if (Array.isArray(input)) {
-      return input.map((entry) => `${this.cachePath}/${entry}`);
+      return input.map(entry => `${this.innerCachePath}/${entry}`);
     }
 
-    return `${this.cachePath}/${input}`;
+    return `${this.innerCachePath}/${input}`;
   }
 
   private _loadOptions(): IRollupOptions {
     // TODO: support rollup config files
-    const options = Object.assign({
-      cache: this._lastChunk,
-    }, this.rollupOptions);
+    const options = Object.assign(
+      {
+        cache: this._lastChunk,
+      },
+      this.rollupOptions,
+    );
     return options;
   }
 
@@ -156,19 +179,29 @@ export = class Rollup extends Plugin {
     output.patch();
   }
 
-  private async _buildTarget(chunk: OutputChunk, options: OutputOptions, output: OutputPatcher) {
+  private async _buildTarget(
+    chunk: OutputChunk,
+    options: OutputOptions,
+    output: OutputPatcher,
+  ) {
     let generateOptions;
 
     if (this.rollupOptions.experimentalCodeSplitting) {
-      const results = await chunk.generate(Object.assign({}, options, {
-        sourcemap: !!options.sourcemap,
-      })) as any;
+      const results = (await chunk.generate(
+        Object.assign({}, options, {
+          sourcemap: !!options.sourcemap,
+        }),
+      )) as any;
 
-      Object.keys(results).forEach((file) => {
+      Object.keys(results).forEach(file => {
         const fileName = resolver.moduleResolve(file, options.dir! + '/');
-        this._writeFile(fileName, options.sourcemap!, results[file] as IGeneratedResult, output);
+        this._writeFile(
+          fileName,
+          options.sourcemap!,
+          results[file] as IGeneratedResult,
+          output,
+        );
       });
-
     } else {
       generateOptions = this._generateSourceMapOptions(options);
       const result = await chunk.generate(generateOptions);
@@ -181,9 +214,9 @@ export = class Rollup extends Plugin {
     const file = options.file;
     const sourcemapFile = options.sourcemapFile;
     if (sourcemapFile) {
-      options.sourcemapFile = this.cachePath + '/' + sourcemapFile;
+      options.sourcemapFile = this.innerCachePath + '/' + sourcemapFile;
     } else {
-      options.sourcemapFile = this.cachePath + '/' + file;
+      options.sourcemapFile = this.innerCachePath + '/' + file;
     }
 
     return Object.assign({}, options, {
@@ -191,7 +224,12 @@ export = class Rollup extends Plugin {
     });
   }
 
-  private _writeFile(filePath: string, sourcemap: boolean | 'inline', result: IGeneratedResult, output: OutputPatcher) {
+  private _writeFile(
+    filePath: string,
+    sourcemap: boolean | 'inline',
+    result: IGeneratedResult,
+    output: OutputPatcher,
+  ) {
     let code = result.code;
     const map = result.map;
     if (sourcemap && map !== null) {
