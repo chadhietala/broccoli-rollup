@@ -1,16 +1,18 @@
 {
   "name": "broccoli-rollup",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Rollup integration with broccoli",
   "main": "dist/index.js",
   "scripts": {
     "build": "rm -rf dist && tsc",
-    "test":
-      "npm run build && nyc --check-coverage --functions 90 --lines 90 --statements 90 -- qunit dist/tests/index.js",
+    "test": "npm run build && nyc --check-coverage --functions 90 --lines 90 --statements 90 -- qunit dist/tests/index.js",
     "test:fast": "qunit dist/tests/index.js",
     "prepublish": "npm run build"
   },
-  "keywords": ["broccoli", "rollup"],
+  "keywords": [
+    "broccoli",
+    "rollup"
+  ],
   "author": "Chad Hietala <chadhietala@gmail.com>",
   "contributors": [
     {
@@ -28,7 +30,10 @@
     "url": "https://github.com/chadhietala/broccoli-rollup"
   },
   "homepage": "https://github.com/chadhietala/broccoli-rollup#readme",
-  "files": ["dist/", "!dist/tests"],
+  "files": [
+    "dist/",
+    "!dist/tests"
+  ],
   "engines": {
     "node": ">=4.0"
   },
