@@ -1,27 +1,18 @@
 {
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Launch",
       "type": "node",
       "request": "launch",
-      "program": "${workspaceRoot}/dist/tests/index.js",
-      "stopOnEntry": false,
-      "args": [],
-      "cwd": "${workspaceRoot}",
-      "preLaunchTask": "build",
-      "runtimeExecutable": null,
-      "runtimeArgs": [
-        "--nolazy",
-        "${workspaceRoot}/node_modules/qunit/bin/qunit"
-      ],
-      "env": {
-        "NODE_ENV": "development"
-      },
-      "sourceMaps": true,
-      "outFiles": [
-        "${workspaceRoot}/dist/*.js"
-      ]
+      "name": "Launch Program",
+      "program": "${workspaceFolder}/node_modules/qunit/bin/qunit",
+      "preLaunchTask": "tsc: build - tsconfig.json",
+      "cwd": "${workspaceFolder}",
+      "args": ["dist/tests/index.js"],
+      "outFiles": ["${workspaceFolder}/dist/**/*.js"]
     }
   ]
 }
