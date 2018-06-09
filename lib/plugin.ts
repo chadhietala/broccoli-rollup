@@ -8,12 +8,15 @@ export interface Plugin {
 // tslint:disable-next-line:variable-name
 const Plugin: {
   prototype: Plugin;
-  new (inputs: any[], options?: {
-    annotation?: string;
-    name?: string;
-    persistentOutput?: boolean;
-  }): Plugin;
-// tslint:disable-next-line:no-var-requires
+  new (
+    inputs: any[],
+    options?: {
+      annotation?: string;
+      name?: string;
+      persistentOutput?: boolean;
+    }
+  ): Plugin;
+  // tslint:disable-next-line:no-var-requires
 } = require('broccoli-plugin');
 
 export default Plugin;

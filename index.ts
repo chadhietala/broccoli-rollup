@@ -33,7 +33,7 @@ import { IEntry, ITree, treeFromEntries, treeFromPath } from './lib/tree-diff';
 // tslint:disable:no-var-requires
 const symlinkOrCopySync: (
   src: string,
-  dst: string,
+  dst: string
 ) => void = require('symlink-or-copy').sync;
 const nodeModulesPath: (cwd: string) => string = require('node-modules-path');
 // tslint:enable:no-var-requires
@@ -56,7 +56,7 @@ const deref =
       };
 
 function isRollupFileOptions(
-  options: RollupFileOptions | RollupDirOptions,
+  options: RollupFileOptions | RollupDirOptions
 ): options is RollupFileOptions {
   return typeof options.input === 'string';
 }
@@ -79,7 +79,7 @@ export = class Rollup extends Plugin {
       rollup: RollupFileOptions | RollupDirOptions;
       cache?: boolean;
       nodeModulesPath?: string;
-    },
+    }
   ) {
     super([node], {
       annotation: options.annotation,
@@ -97,7 +97,7 @@ export = class Rollup extends Plugin {
       !path.isAbsolute(options.nodeModulesPath)
     ) {
       throw new Error(
-        `nodeModulesPath must be fully qualified and you passed a relative path`,
+        `nodeModulesPath must be fully qualified and you passed a relative path`
       );
     }
 
@@ -132,13 +132,13 @@ export = class Rollup extends Plugin {
         case 'create':
           deref(
             `${this.inputPaths[0]}/${relativePath}`,
-            `${this.innerCachePath}/${relativePath}`,
+            `${this.innerCachePath}/${relativePath}`
           );
           break;
         case 'change':
           deref(
             `${this.inputPaths[0]}/${relativePath}`,
-            `${this.innerCachePath}/${relativePath}`,
+            `${this.innerCachePath}/${relativePath}`
           );
           break;
       }
@@ -154,7 +154,7 @@ export = class Rollup extends Plugin {
     return instrument('rollup', async () => {
       if (isRollupFileOptions(options)) {
         return rollup(options).then(build =>
-          this._buildTargets(build, options),
+          this._buildTargets(build, options)
         );
       }
       await rollup(options).then(async build => {
@@ -191,13 +191,13 @@ export = class Rollup extends Plugin {
       {
         cache: this._lastChunk,
       },
-      this.rollupOptions,
+      this.rollupOptions
     );
     return options;
   }
 
   private _targetsFor<T extends RollupFileOptions | RollupDirOptions>(
-    options: T,
+    options: T
   ): T extends RollupFileOptions ? OutputOptionsFile[] : OutputOptionsDir[] {
     return Array.isArray(options.output)
       ? (options.output as any)
@@ -206,7 +206,7 @@ export = class Rollup extends Plugin {
 
   private async _buildTargets(
     build: RollupSingleFileBuild,
-    options: RollupFileOptions,
+    options: RollupFileOptions
   ) {
     const output = this._getOutput();
 
@@ -221,7 +221,7 @@ export = class Rollup extends Plugin {
   private async _buildTarget(
     build: RollupSingleFileBuild,
     options: OutputOptionsFile,
-    output: OutputPatcher,
+    output: OutputPatcher
   ) {
     const generateOptions = this._generateSourceMapOptions(options);
     const chunk = await build.generate(options);
@@ -247,7 +247,7 @@ export = class Rollup extends Plugin {
     filePath: string,
     sourcemap: boolean | 'inline' | undefined,
     result: OutputChunk,
-    output: OutputPatcher,
+    output: OutputPatcher
   ) {
     let code = result.code;
     const map = result.map;

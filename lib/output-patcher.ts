@@ -25,7 +25,10 @@ export default class OutputPatcher {
   public add(relativePath: string, content: string) {
     const entry = new Entry(relativePath);
     this.entries.push(entry);
-    const checksum = crypto.createHash('md5').update(content).digest('hex');
+    const checksum = crypto
+      .createHash('md5')
+      .update(content)
+      .digest('hex');
     this.checksums.set(entry, checksum);
     this.contents[relativePath] = content;
   }
@@ -64,7 +67,7 @@ export default class OutputPatcher {
 
     const nextTree = treeFromEntries(entries, { sortAndExpand: true });
     const patch = lastTree.calculatePatch(nextTree, isUnchanged);
-    patch.forEach((change) => {
+    patch.forEach(change => {
       const op = change[0];
       const path = change[1];
       switch (op) {

@@ -284,8 +284,8 @@ export default two;
             },
           }),
         new Error(
-          'nodeModulesPath must be fully qualified and you passed a relative path',
-        ),
+          'nodeModulesPath must be fully qualified and you passed a relative path'
+        )
       );
     });
   });

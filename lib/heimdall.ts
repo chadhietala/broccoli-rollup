@@ -10,6 +10,9 @@ export interface ILogger {
 
 export const logger: ILogger = _logger('broccoli-rollup');
 
-export function instrument(name: string, cb: () => Promise<void>): Promise<void> {
+export function instrument(
+  name: string,
+  cb: () => Promise<void>
+): Promise<void> {
   return heimdall.node(name, cb);
 }

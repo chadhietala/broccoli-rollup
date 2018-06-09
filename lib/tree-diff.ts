@@ -3,9 +3,12 @@ const fsTreeDiff: IFsTreeDiff = require('fs-tree-diff');
 const walkSync: IWalkSync = require('walk-sync');
 
 interface IFsTreeDiff {
-  fromEntries(entries: IEntry[], options?: {
-    sortAndExpand?: boolean;
-  }): ITree;
+  fromEntries(
+    entries: IEntry[],
+    options?: {
+      sortAndExpand?: boolean;
+    }
+  ): ITree;
 }
 
 interface IWalkSync {
@@ -17,7 +20,10 @@ export type ChangeOp = 'unlink' | 'create' | 'mkdir' | 'rmdir' | 'change';
 export type Change = [ChangeOp, string, IEntry];
 
 export interface ITree {
-  calculatePatch(next: ITree, isUnchanged?: (a: IEntry, b: IEntry) => boolean): Change[];
+  calculatePatch(
+    next: ITree,
+    isUnchanged?: (a: IEntry, b: IEntry) => boolean
+  ): Change[];
 }
 
 export interface IEntry {
@@ -30,9 +36,12 @@ export interface IEntry {
   isDirectory(): boolean;
 }
 
-export function treeFromEntries(entries: IEntry[], options?: {
-  sortAndExpand?: boolean;
-}): ITree {
+export function treeFromEntries(
+  entries: IEntry[],
+  options?: {
+    sortAndExpand?: boolean;
+  }
+): ITree {
   return fsTreeDiff.fromEntries(entries, options);
 }
 
