@@ -10,12 +10,24 @@ import {
 } from 'fs';
 import { tmpdir } from 'os';
 import * as path from 'path';
-import { InputOptions, OutputChunk, OutputOptions } from 'rollup';
+import {
+  InputOption,
+  InputOptions,
+  OutputChunk,
+  OutputOptions,
+  OutputOptionsDir,
+  OutputOptionsFile,
+  rollup,
+  RollupBuild,
+  RollupDirOptions,
+  RollupFileOptions,
+  RollupSingleFileBuild,
+} from 'rollup';
 import { instrument, logger } from './lib/heimdall';
 import OutputPatcher from './lib/output-patcher';
 import Plugin from './lib/plugin';
 import resolver from './lib/resolver';
-import { IGeneratedResult, IRollupOptions } from './lib/rollup';
+import { IGeneratedResult } from './lib/rollup';
 import { IEntry, ITree, treeFromEntries, treeFromPath } from './lib/tree-diff';
 
 // tslint:disable:no-var-requires
@@ -43,8 +55,14 @@ const deref =
         writeFileSync(destPath, content);
       };
 
+function isRollupFileOptions(
+  options: RollupFileOptions | RollupDirOptions,
+): options is RollupFileOptions {
+  return typeof options.input === 'string';
+}
+
 export = class Rollup extends Plugin {
-  public rollupOptions: IRollupOptions;
+  public rollupOptions: RollupFileOptions | RollupDirOptions;
   public cache: boolean;
   public innerCachePath = '';
   public nodeModulesPath: string;
@@ -58,7 +76,7 @@ export = class Rollup extends Plugin {
     options: {
       annotation?: string;
       name?: string;
-      rollup: IRollupOptions;
+      rollup: RollupFileOptions | RollupDirOptions;
       cache?: boolean;
       nodeModulesPath?: string;
     },
@@ -133,27 +151,41 @@ export = class Rollup extends Plugin {
 
     const options = this._loadOptions();
     options.input = this._mapInput(options.input);
-    return instrument('rollup', () => {
-      return require('rollup')
-        .rollup(options)
-        .then((chunk: OutputChunk) => {
-          if (this.cache) {
-            this._lastChunk = chunk;
+    return instrument('rollup', async () => {
+      if (isRollupFileOptions(options)) {
+        return rollup(options).then(build =>
+          this._buildTargets(build, options),
+        );
+      }
+      await rollup(options).then(async build => {
+        const output = this._getOutput();
+
+        const outputs = this._targetsFor(options);
+        for (let i = 0; i < outputs.length; i++) {
+          const result = await build.generate(outputs[i]);
+          const bundle = result.output;
+          const files = Object.keys(bundle);
+          for (let j = 0; j < files.length; j++) {
+            const file = files[j];
+            output.add(file, (bundle[file] as any).code);
           }
-          return this._buildTargets(chunk, options);
-        });
+        }
+
+        output.patch();
+      });
     });
   }
 
-  private _mapInput(input: string | string[]) {
+  private _mapInput(input: InputOption) {
     if (Array.isArray(input)) {
       return input.map(entry => `${this.innerCachePath}/${entry}`);
+    } else if (typeof input === 'string') {
+      return `${this.innerCachePath}/${input}`;
     }
-
-    return `${this.innerCachePath}/${input}`;
+    return Object.keys(input).map(entry => `${this.innerCachePath}/${entry}`);
   }
 
-  private _loadOptions(): IRollupOptions {
+  private _loadOptions(): RollupFileOptions | RollupDirOptions {
     // TODO: support rollup config files
     const options = Object.assign(
       {
@@ -164,52 +196,39 @@ export = class Rollup extends Plugin {
     return options;
   }
 
-  private _targetsFor(options: IRollupOptions): OutputOptions[] {
-    return Array.isArray(options.output) ? options.output : [options.output];
+  private _targetsFor<T extends RollupFileOptions | RollupDirOptions>(
+    options: T,
+  ): T extends RollupFileOptions ? OutputOptionsFile[] : OutputOptionsDir[] {
+    return Array.isArray(options.output)
+      ? (options.output as any)
+      : [options.output];
   }
 
-  private async _buildTargets(chunk: OutputChunk, options: IRollupOptions) {
+  private async _buildTargets(
+    build: RollupSingleFileBuild,
+    options: RollupFileOptions,
+  ) {
     const output = this._getOutput();
 
     const targets = this._targetsFor(options);
     for (let i = 0; i < targets.length; i++) {
-      await this._buildTarget(chunk, targets[i], output);
+      await this._buildTarget(build, targets[i], output);
     }
 
     output.patch();
   }
 
   private async _buildTarget(
-    chunk: OutputChunk,
-    options: OutputOptions,
+    build: RollupSingleFileBuild,
+    options: OutputOptionsFile,
     output: OutputPatcher,
   ) {
-    let generateOptions;
-
-    if (this.rollupOptions.experimentalCodeSplitting) {
-      const results = (await chunk.generate(
-        Object.assign({}, options, {
-          sourcemap: !!options.sourcemap,
-        }),
-      )) as any;
-
-      Object.keys(results).forEach(file => {
-        const fileName = resolver.moduleResolve(file, options.dir! + '/');
-        this._writeFile(
-          fileName,
-          options.sourcemap!,
-          results[file] as IGeneratedResult,
-          output,
-        );
-      });
-    } else {
-      generateOptions = this._generateSourceMapOptions(options);
-      const result = await chunk.generate(generateOptions);
-      this._writeFile(options.file!, options.sourcemap!, result, output);
-    }
+    const generateOptions = this._generateSourceMapOptions(options);
+    const chunk = await build.generate(options);
+    this._writeFile(options.file!, generateOptions.sourcemap, chunk, output);
   }
 
-  private _generateSourceMapOptions(options: OutputOptions): OutputOptions {
+  private _generateSourceMapOptions(options: OutputOptionsFile): OutputOptions {
     const sourcemap = options.sourcemap;
     const file = options.file;
     const sourcemapFile = options.sourcemapFile;
@@ -226,13 +245,13 @@ export = class Rollup extends Plugin {
 
   private _writeFile(
     filePath: string,
-    sourcemap: boolean | 'inline',
-    result: IGeneratedResult,
+    sourcemap: boolean | 'inline' | undefined,
+    result: OutputChunk,
     output: OutputPatcher,
   ) {
     let code = result.code;
     const map = result.map;
-    if (sourcemap && map !== null) {
+    if (sourcemap && map !== undefined) {
       let url;
       if (sourcemap === 'inline') {
         url = map.toUrl();

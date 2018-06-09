@@ -58,7 +58,7 @@
     "heimdalljs-logger": "^0.1.7",
     "magic-string": "^0.25.0",
     "node-modules-path": "^1.0.1",
-    "rollup": "^0.57.1",
+    "rollup": "^0.60.1",
     "symlink-or-copy": "^1.1.8",
     "walk-sync": "^0.3.1"
   }

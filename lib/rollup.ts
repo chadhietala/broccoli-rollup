@@ -1,8 +1,11 @@
 import { SourceMap } from 'magic-string';
-import { InputOptions, OutputOptions } from 'rollup';
-export interface IRollupOptions extends InputOptions {
-  output: OutputOptions[] | OutputOptions;
-}
+import {
+  InputOptions,
+  OutputOptionsDir,
+  OutputOptionsFile,
+  RollupDirOptions,
+  RollupFileOptions,
+} from 'rollup';
 
 export interface IGeneratedResult {
   code: string;
