@@ -1,22 +1,30 @@
 import {
   constants as fsConstants,
   copyFileSync,
-  existsSync,
   mkdirSync,
   readFileSync,
   rmdirSync,
   unlinkSync,
   writeFileSync,
 } from 'fs';
-import { tmpdir } from 'os';
 import * as path from 'path';
-import { InputOptions, OutputChunk, OutputOptions } from 'rollup';
+import {
+  InputOption,
+  OutputOptions,
+  RollupBuild,
+  RollupSingleFileBuild,
+} from 'rollup';
 import { instrument, logger } from './lib/heimdall';
 import OutputPatcher from './lib/output-patcher';
 import Plugin from './lib/plugin';
 import resolver from './lib/resolver';
-import { IGeneratedResult, IRollupOptions } from './lib/rollup';
-import { IEntry, ITree, treeFromEntries, treeFromPath } from './lib/tree-diff';
+import {
+  IGeneratedResult,
+  IRollupOptions,
+  isSingleFileBuild,
+  RollupFunc,
+} from './lib/rollup';
+import { ITree, treeFromEntries, treeFromPath } from './lib/tree-diff';
 
 // tslint:disable:no-var-requires
 const symlinkOrCopySync: (
@@ -49,7 +57,7 @@ export = class Rollup extends Plugin {
   public innerCachePath = '';
   public nodeModulesPath: string;
 
-  private _lastChunk: OutputChunk | null;
+  private _lastChunk: RollupBuild | RollupSingleFileBuild | null;
   private lastTree: ITree;
   private _output: OutputPatcher | null;
 
@@ -134,9 +142,9 @@ export = class Rollup extends Plugin {
     const options = this._loadOptions();
     options.input = this._mapInput(options.input);
     return instrument('rollup', () => {
-      return require('rollup')
-        .rollup(options)
-        .then((chunk: OutputChunk) => {
+      const rollup: RollupFunc = require('rollup').rollup;
+      return rollup(options)
+        .then((chunk: RollupSingleFileBuild | RollupBuild) => {
           if (this.cache) {
             this._lastChunk = chunk;
           }
@@ -145,7 +153,7 @@ export = class Rollup extends Plugin {
     });
   }
 
-  private _mapInput(input: string | string[]) {
+  private _mapInput(input: InputOption) {
     if (Array.isArray(input)) {
       return input.map(entry => `${this.innerCachePath}/${entry}`);
     }
@@ -164,52 +172,40 @@ export = class Rollup extends Plugin {
     return options;
   }
 
-  private _targetsFor(options: IRollupOptions): OutputOptions[] {
-    return Array.isArray(options.output) ? options.output : [options.output];
-  }
-
-  private async _buildTargets(chunk: OutputChunk, options: IRollupOptions) {
+  private async _buildTargets(chunk: RollupBuild | RollupSingleFileBuild, options: IRollupOptions) {
     const output = this._getOutput();
-
-    const targets = this._targetsFor(options);
-    for (let i = 0; i < targets.length; i++) {
-      await this._buildTarget(chunk, targets[i], output);
-    }
-
+    this._buildTarget(chunk, output, options.output);
     output.patch();
   }
 
   private async _buildTarget(
-    chunk: OutputChunk,
-    options: OutputOptions,
+    chunk: RollupBuild | RollupSingleFileBuild,
     output: OutputPatcher,
+    options: OutputOptions = {},
   ) {
-    let generateOptions;
-
-    if (this.rollupOptions.experimentalCodeSplitting) {
+    if (isSingleFileBuild(chunk)) {
+      const generateOptions = this._generateSourceMapOptions(options);
+      const result = await chunk.generate(generateOptions);
+      this._writeFile(options.file!, options.sourcemap!, result, output);
+    } else {
       const results = (await chunk.generate(
         Object.assign({}, options, {
           sourcemap: !!options.sourcemap,
         }),
-      )) as any;
-
-      Object.keys(results).forEach(file => {
+      ));
+      Object.keys(results.output).forEach(file => {
         const fileName = resolver.moduleResolve(file, options.dir! + '/');
         this._writeFile(
           fileName,
           options.sourcemap!,
-          results[file] as IGeneratedResult,
+          results.output[file] as IGeneratedResult,
           output,
         );
       });
-    } else {
-      generateOptions = this._generateSourceMapOptions(options);
-      const result = await chunk.generate(generateOptions);
-      this._writeFile(options.file!, options.sourcemap!, result, output);
     }
   }
 
-  private _generateSourceMapOptions(options: OutputOptions): OutputOptions {
+  private _generateSourceMapOptions(options: OutputOptions = {}): OutputOptions {
     const sourcemap = options.sourcemap;
     const file = options.file;
     const sourcemapFile = options.sourcemapFile;
@@ -226,7 +222,7 @@ export = class Rollup extends Plugin {
 
   private _writeFile(
     filePath: string,
-    sourcemap: boolean | 'inline',
+    sourcemap: boolean | 'inline' | undefined,
     result: IGeneratedResult,
     output: OutputPatcher,
   ) {
@@ -234,7 +230,7 @@ export = class Rollup extends Plugin {
     const map = result.map;
     if (sourcemap && map !== null) {
       let url;
-      if (sourcemap === 'inline') {
+      if (sourcemap === 'inline' && map) {
         url = map.toUrl();
       } else {
         url = this._addSourceMap(map, filePath, output);

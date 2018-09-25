@@ -5,6 +5,7 @@ import {
   TempDir,
 } from 'broccoli-test-helper';
 import Rollup = require('../index');
+import { IRollupOptions } from '../lib/rollup';
 // tslint:disable-next-line:no-var-requires
 const mergeTrees: (input: any[]) => any = require('broccoli-merge-trees');
 const describe = QUnit.module;
@@ -178,75 +179,19 @@ export default index;
       const node = new Rollup(input.path(), {
         rollup: {
           input: 'index.js',
-          output: [
-            {
-              file: 'dist/out.umd.js',
-              format: 'umd',
-              name: 'thing',
-            },
-          ],
-        },
-      });
-      const output = createBuilder(node);
-      try {
-        await output.build();
-
-        assert.deepEqual(output.read(), {
-          dist: {
-            'out.umd.js': `(function (global, factory) {
-	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
-	typeof define === 'function' && define.amd ? define(factory) :
-	(global.thing = factory());
-}(this, (function () { 'use strict';
-
-	var add = x => x + x;
-
-	const two = add(1);
-
-	return two;
-
-})));
-`,
+          output: {
+            file: 'dist/out.umd.js',
+            format: 'umd',
+            name: 'thing',
           },
-        });
-      } finally {
-        await output.dispose();
-      }
-    });
-
-    it('works with many targets', async assert => {
-      const node = new Rollup(input.path(), {
-        rollup: {
-          input: 'index.js',
-          output: [
-            {
-              file: 'dist/out.umd.js',
-              format: 'umd',
-              name: 'thing',
-            },
-            {
-              file: 'dist/out.js',
-              format: 'es',
-              sourcemap: true,
-            },
-          ],
         },
       });
-
       const output = createBuilder(node);
       try {
         await output.build();
 
         assert.deepEqual(output.read(), {
           dist: {
-            'out.js': `var add = x => x + x;
-
-const two = add(1);
-
-export default two;
-//# sourceMappingURL=out.js.map`,
-            'out.js.map':
-              '{"version":3,"file":"out.js","sources":["../add.js","../index.js"],"sourcesContent":["export default x => x + x;","import add from \\"./add\\"; const two = add(1); export default two;"],"names":[],"mappings":"AAAA,UAAe,CAAC,IAAI,CAAC,GAAG,CAAC;;qBAAC,rBCAD,MAAM,GAAG,GAAG,GAAG,CAAC,CAAC,CAAC,CAAC;;;;"}',
             'out.umd.js': `(function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
 	typeof define === 'function' && define.amd ? define(factory) :
