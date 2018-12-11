@@ -174,7 +174,7 @@ export = class Rollup extends Plugin {
 
   private async _buildTargets(chunk: RollupBuild | RollupSingleFileBuild, options: IRollupOptions) {
     const output = this._getOutput();
-    this._buildTarget(chunk, output, options.output);
+    await this._buildTarget(chunk, output, options.output);
     output.patch();
   }
 
