@@ -266,7 +266,7 @@ export default index;
 
         assert.deepEqual(output.read(), {
           chunks: {
-            'a.js': `import e from './chunk1.js';
+            'a.js': `import { a as e } from './chunk-53cd0688.js';
 
 const num1 = 1;
 
@@ -274,7 +274,7 @@ const out = num1 + e;
 
 export { out };
 `,
-            'b.js': `import e from './chunk1.js';
+            'b.js': `import { a as e } from './chunk-53cd0688.js';
 
 const num2 = 2;
 
@@ -282,9 +282,9 @@ const out = num2 + e;
 
 export { out };
 `,
-            'chunk1.js': `const num3 = 3;
+            'chunk-53cd0688.js': `const num3 = 3;
 
-export default num3;
+export { num3 as a };
 `,
           },
         });

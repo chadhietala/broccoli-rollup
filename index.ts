@@ -194,7 +194,7 @@ export = class Rollup extends Plugin {
         }),
       ));
       Object.keys(results.output).forEach(file => {
-        const fileName = resolver.moduleResolve(file, options.dir! + '/');
+        const fileName = resolver.moduleResolve(`./${file}`, options.dir! + '/');
         this._writeFile(
           fileName,
           options.sourcemap!,
