@@ -141,16 +141,22 @@ export = class Rollup extends Plugin {
 
     const options = this._loadOptions();
     options.input = this._mapInput(options.input);
-    return instrument('rollup', () => {
-      const rollup: RollupFunc = require('rollup').rollup;
-      return rollup(options)
-        .then((chunk: RollupSingleFileBuild | RollupBuild) => {
-          if (this.cache) {
-            this._lastChunk = chunk;
-          }
-          return this._buildTargets(chunk, options);
-        });
-    });
+    const heimdall = instrument('rollup');
+
+    const rollup: RollupFunc = require('rollup').rollup;
+    return rollup(options)
+      .then((chunk: RollupSingleFileBuild | RollupBuild) => {
+        if (this.cache) {
+          this._lastChunk = chunk;
+        }
+        return this._buildTargets(chunk, options);
+      }).then((targets) => {
+        heimdall.stop();
+        return targets;
+      }).catch((e) => {
+        heimdall.stop();
+        throw(e);
+      });
   }
 
   private _mapInput(input: InputOption) {
