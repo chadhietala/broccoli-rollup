@@ -1,22 +1,26 @@
 import {
   constants as fsConstants,
   copyFileSync,
-  existsSync,
   mkdirSync,
   readFileSync,
   rmdirSync,
   unlinkSync,
   writeFileSync,
 } from 'fs';
-import { tmpdir } from 'os';
 import * as path from 'path';
-import { InputOptions, OutputChunk, OutputOptions } from 'rollup';
-import { instrument, logger } from './lib/heimdall';
+import {
+  InputOption,
+  InputOptions,
+  OutputOptions,
+  rollup,
+  RollupBuild,
+  RollupCache,
+} from 'rollup';
+import { heimdall, logger } from './lib/heimdall';
 import OutputPatcher from './lib/output-patcher';
 import Plugin from './lib/plugin';
-import resolver from './lib/resolver';
-import { IGeneratedResult, IRollupOptions } from './lib/rollup';
-import { IEntry, ITree, treeFromEntries, treeFromPath } from './lib/tree-diff';
+import { IRollupOptions } from './lib/rollup';
+import { ITree, treeFromEntries, treeFromPath } from './lib/tree-diff';
 
 // tslint:disable:no-var-requires
 const symlinkOrCopySync: (
@@ -49,7 +53,7 @@ export = class Rollup extends Plugin {
   public innerCachePath = '';
   public nodeModulesPath: string;
 
-  private _lastChunk: OutputChunk | null;
+  private _cache: RollupCache | undefined;
   private lastTree: ITree;
   private _output: OutputPatcher | null;
 
@@ -69,7 +73,7 @@ export = class Rollup extends Plugin {
       persistentOutput: true,
     });
     this.rollupOptions = options.rollup;
-    this._lastChunk = null;
+    this._cache = undefined;
     this._output = null;
     this.lastTree = treeFromEntries([]);
     this.cache = options.cache === undefined ? true : options.cache;
@@ -87,7 +91,7 @@ export = class Rollup extends Plugin {
       options.nodeModulesPath || nodeModulesPath(process.cwd());
   }
 
-  public build() {
+  public async build() {
     const lastTree = this.lastTree;
 
     if (!this.innerCachePath) {
@@ -127,40 +131,44 @@ export = class Rollup extends Plugin {
     });
 
     // If this a noop post initial build, just bail out
-    if (this._lastChunk && patches.length === 0) {
+    if (this._cache && patches.length === 0) {
       return;
     }
 
     const options = this._loadOptions();
     options.input = this._mapInput(options.input);
-    return instrument('rollup', () => {
-      return require('rollup')
-        .rollup(options)
-        .then((chunk: OutputChunk) => {
-          if (this.cache) {
-            this._lastChunk = chunk;
-          }
-          return this._buildTargets(chunk, options);
-        });
-    });
+
+    const token = heimdall.start('rollup');
+
+    const build = await rollup(options as InputOptions);
+
+    if (this.cache) {
+      this._cache = build.cache;
+    }
+
+    await this._buildTargets(build, options);
+
+    token.stop();
   }
 
-  private _mapInput(input: string | string[]) {
+  private _mapInput(input: InputOption) {
     if (Array.isArray(input)) {
       return input.map(entry => `${this.innerCachePath}/${entry}`);
     }
-
-    return `${this.innerCachePath}/${input}`;
+    if (typeof input === 'string') {
+      return `${this.innerCachePath}/${input}`;
+    }
+    const mapping = {} as { [key: string]: string };
+    for (const key of Object.keys(input)) {
+      mapping[key] = `${this.innerCachePath}/${input[key]}`;
+    }
+    return mapping;
   }
 
   private _loadOptions(): IRollupOptions {
     // TODO: support rollup config files
-    const options = Object.assign(
-      {
-        cache: this._lastChunk,
-      },
-      this.rollupOptions,
-    );
+    const options = Object.assign({}, this.rollupOptions);
+    options.cache = this._cache;
     return options;
   }
 
@@ -168,44 +176,55 @@ export = class Rollup extends Plugin {
     return Array.isArray(options.output) ? options.output : [options.output];
   }
 
-  private async _buildTargets(chunk: OutputChunk, options: IRollupOptions) {
+  private async _buildTargets(build: RollupBuild, options: IRollupOptions) {
     const output = this._getOutput();
 
     const targets = this._targetsFor(options);
     for (let i = 0; i < targets.length; i++) {
-      await this._buildTarget(chunk, targets[i], output);
+      await this._buildTarget(
+        build,
+        this._generateSourceMapOptions(targets[i]),
+        output,
+      );
     }
 
     output.patch();
   }
 
   private async _buildTarget(
-    chunk: OutputChunk,
+    build: RollupBuild,
     options: OutputOptions,
     output: OutputPatcher,
   ) {
-    let generateOptions;
-
-    if (this.rollupOptions.experimentalCodeSplitting) {
-      const results = (await chunk.generate(
-        Object.assign({}, options, {
-          sourcemap: !!options.sourcemap,
-        }),
-      )) as any;
-
-      Object.keys(results).forEach(file => {
-        const fileName = resolver.moduleResolve(file, options.dir! + '/');
+    let dir: string;
+    if (options.dir) {
+      dir = options.dir = `${this.innerCachePath}/${options.dir}`;
+    } else if (options.file) {
+      options.file = `${this.innerCachePath}/${options.file}`;
+      dir = options.file.substr(0, options.file.lastIndexOf('/'));
+    } else {
+      throw new Error('output missing dir or file');
+    }
+    const rollupOuput = await build.generate(options);
+    for (const chunk of rollupOuput.output) {
+      const relativePath = this._relativePath(dir, chunk.fileName);
+      if ('isAsset' in chunk && chunk.isAsset) {
         this._writeFile(
-          fileName,
-          options.sourcemap!,
-          results[file] as IGeneratedResult,
+          relativePath,
+          options.sourcemap,
+          chunk.source.toString(),
+          (chunk as any).map,
           output,
         );
-      });
-    } else {
-      generateOptions = this._generateSourceMapOptions(options);
-      const result = await chunk.generate(generateOptions);
-      this._writeFile(options.file!, options.sourcemap!, result, output);
+      } else {
+        this._writeFile(
+          relativePath,
+          options.sourcemap,
+          chunk.code!,
+          (chunk as any).map,
+          output,
+        );
+      }
     }
   }
 
@@ -226,12 +245,11 @@ export = class Rollup extends Plugin {
 
   private _writeFile(
     filePath: string,
-    sourcemap: boolean | 'inline',
-    result: IGeneratedResult,
+    sourcemap: boolean | 'inline' | undefined,
+    code: string,
+    map: any,
     output: OutputPatcher,
   ) {
-    let code = result.code;
-    const map = result.map;
     if (sourcemap && map !== null) {
       let url;
       if (sourcemap === 'inline') {
@@ -258,5 +276,13 @@ export = class Rollup extends Plugin {
       output = this._output = new OutputPatcher(this.outputPath, logger);
     }
     return output;
+  }
+
+  private _relativePath(dir: string, file: string) {
+    let relative = path.relative(this.innerCachePath, path.join(dir, file));
+    if (path.sep !== '/') {
+      relative = relative.split(path.sep).join('/');
+    }
+    return relative;
   }
 };
