@@ -184,7 +184,7 @@ export default index;
               format: 'umd',
               name: 'thing',
             },
-          ],
+          ] as any,
         },
       });
       const output = createBuilder(node);
@@ -193,20 +193,8 @@ export default index;
 
         assert.deepEqual(output.read(), {
           dist: {
-            'out.umd.js': `(function (global, factory) {
-	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
-	typeof define === 'function' && define.amd ? define(factory) :
-	(global.thing = factory());
-}(this, (function () { 'use strict';
-
-	var add = x => x + x;
-
-	const two = add(1);
-
-	return two;
-
-})));
-`,
+            'out.umd.js':
+              "(function (global, factory) {\n\ttypeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :\n\ttypeof define === 'function' && define.amd ? define(factory) :\n\t(global = global || self, global.thing = factory());\n}(this, function () { 'use strict';\n\n\tvar add = x => x + x;\n\n\tconst two = add(1);\n\n\treturn two;\n\n}));\n",
           },
         });
       } finally {
@@ -229,7 +217,7 @@ export default index;
               format: 'es',
               sourcemap: true,
             },
-          ],
+          ] as any,
         },
       });
 
@@ -237,6 +225,7 @@ export default index;
       try {
         await output.build();
 
+        // var add = x => x + x;\n\nconst two = add(1);\n\nexport default two;\n//# sourceMappingURL=out.js.map
         assert.deepEqual(output.read(), {
           dist: {
             'out.js': `var add = x => x + x;
@@ -247,20 +236,8 @@ export default two;
 //# sourceMappingURL=out.js.map`,
             'out.js.map':
               '{"version":3,"file":"out.js","sources":["../add.js","../index.js"],"sourcesContent":["export default x => x + x;","import add from \\"./add\\"; const two = add(1); export default two;"],"names":[],"mappings":"AAAA,UAAe,CAAC,IAAI,CAAC,GAAG,CAAC;;qBAAC,rBCAD,MAAM,GAAG,GAAG,GAAG,CAAC,CAAC,CAAC,CAAC;;;;"}',
-            'out.umd.js': `(function (global, factory) {
-	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
-	typeof define === 'function' && define.amd ? define(factory) :
-	(global.thing = factory());
-}(this, (function () { 'use strict';
-
-	var add = x => x + x;
-
-	const two = add(1);
-
-	return two;
-
-})));
-`,
+            'out.umd.js':
+              "(function (global, factory) {\n\ttypeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :\n\ttypeof define === 'function' && define.amd ? define(factory) :\n\t(global = global || self, global.thing = factory());\n}(this, function () { 'use strict';\n\n\tvar add = x => x + x;\n\n\tconst two = add(1);\n\n\treturn two;\n\n}));\n",
           },
         });
       } finally {
@@ -296,7 +273,6 @@ export default two;
         const input = use(await createTempDir());
         const subject = new Rollup(input.path(), {
           rollup: {
-            experimentalCodeSplitting: true,
             input: ['a.js', 'b.js'],
             output: {
               dir: 'chunks',
@@ -321,26 +297,11 @@ export default two;
 
         assert.deepEqual(output.read(), {
           chunks: {
-            'a.js': `import e from './chunk1.js';
-
-const num1 = 1;
-
-const out = num1 + e;
-
-export { out };
-`,
-            'b.js': `import e from './chunk1.js';
-
-const num2 = 2;
-
-const out = num2 + e;
-
-export { out };
-`,
-            'chunk1.js': `const num3 = 3;
-
-export default num3;
-`,
+            'a.js':
+              "import { a as e } from './chunk-924c0816.js';\n\nconst num1 = 1;\n\nconst out = num1 + e;\n\nexport { out };\n",
+            'b.js':
+              "import { a as e } from './chunk-924c0816.js';\n\nconst num2 = 2;\n\nconst out = num2 + e;\n\nexport { out };\n",
+            'chunk-924c0816.js': 'const num3 = 3;\n\nexport { num3 as a };\n',
           },
         });
       });

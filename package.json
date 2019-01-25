@@ -1,18 +1,17 @@
 {
   "name": "broccoli-rollup",
-  "version": "2.1.1",
+  "version": "3.0.0",
   "description": "Rollup integration with broccoli",
-  "main": "dist/index.js",
-  "scripts": {
-    "build": "rm -rf dist && tsc",
-    "test": "npm run build && nyc --check-coverage --functions 90 --lines 90 --statements 90 -- qunit dist/tests/index.js",
-    "test:fast": "qunit dist/tests/index.js",
-    "prepublish": "npm run build"
-  },
   "keywords": [
     "broccoli",
     "rollup"
   ],
+  "homepage": "https://github.com/chadhietala/broccoli-rollup#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chadhietala/broccoli-rollup"
+  },
+  "license": "MIT",
   "author": "Chad Hietala <chadhietala@gmail.com>",
   "contributors": [
     {
@@ -24,18 +23,28 @@
       "email": "kris.selden@gmail.com"
     }
   ],
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/chadhietala/broccoli-rollup"
-  },
-  "homepage": "https://github.com/chadhietala/broccoli-rollup#readme",
   "files": [
     "dist/",
     "!dist/tests"
   ],
-  "engines": {
-    "node": ">=6.0"
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "rm -rf dist && tsc",
+    "prepublish": "yarn run build",
+    "test": "yarn run build && nyc --check-coverage --functions 90 --lines 90 --statements 90 -- qunit dist/tests/index.js",
+    "test:fast": "qunit dist/tests/index.js"
+  },
+  "dependencies": {
+    "@types/node": "*",
+    "broccoli-plugin": "^1.2.1",
+    "fs-tree-diff": "^0.5.2",
+    "heimdalljs": "^0.2.1",
+    "heimdalljs-logger": "^0.1.7",
+    "magic-string": "^0.25.0",
+    "node-modules-path": "^1.0.1",
+    "rollup": "^1.1.0",
+    "symlink-or-copy": "^1.1.8",
+    "walk-sync": "^0.3.1"
   },
   "devDependencies": {
     "@types/acorn": "^4.0.3",
@@ -49,17 +58,7 @@
     "tslint": "^5.10.0",
     "typescript": "^2.9.1"
   },
-  "dependencies": {
-    "@types/node": "*",
-    "amd-name-resolver": "^1.2.0",
-    "broccoli-plugin": "^1.2.1",
-    "fs-tree-diff": "^0.5.2",
-    "heimdalljs": "^0.2.1",
-    "heimdalljs-logger": "^0.1.7",
-    "magic-string": "^0.25.0",
-    "node-modules-path": "^1.0.1",
-    "rollup": "^0.57.1",
-    "symlink-or-copy": "^1.1.8",
-    "walk-sync": "^0.3.1"
+  "engines": {
+    "node": ">=6.0"
   }
 }
