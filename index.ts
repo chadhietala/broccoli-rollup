@@ -196,12 +196,21 @@ export = class Rollup extends Plugin {
     options: OutputOptions,
     output: OutputPatcher,
   ) {
+    let dir: string;
+    if (options.dir) {
+      dir = options.dir = `${this.innerCachePath}/${options.dir}`;
+    } else if (options.file) {
+      options.file = `${this.innerCachePath}/${options.file}`;
+      dir = options.file.substr(0, options.file.lastIndexOf('/'));
+    } else {
+      throw new Error('output missing dir or file');
+    }
     const rollupOuput = await build.generate(options);
     for (const chunk of rollupOuput.output) {
-      const dir = options.dir || path.dirname(options.file!);
+      const relativePath = this._relativePath(dir, chunk.fileName);
       if ('isAsset' in chunk && chunk.isAsset) {
         this._writeFile(
-          path.join(dir, chunk.fileName),
+          relativePath,
           options.sourcemap,
           chunk.source.toString(),
           (chunk as any).map,
@@ -209,7 +218,7 @@ export = class Rollup extends Plugin {
         );
       } else {
         this._writeFile(
-          path.join(dir, chunk.fileName),
+          relativePath,
           options.sourcemap,
           chunk.code!,
           (chunk as any).map,
@@ -267,5 +276,13 @@ export = class Rollup extends Plugin {
       output = this._output = new OutputPatcher(this.outputPath, logger);
     }
     return output;
+  }
+
+  private _relativePath(dir: string, file: string) {
+    let relative = path.relative(this.innerCachePath, path.join(dir, file));
+    if (path.sep !== '/') {
+      relative = relative.split(path.sep).join('/');
+    }
+    return relative;
   }
 };
