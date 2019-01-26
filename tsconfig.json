@@ -5,9 +5,11 @@
     "target": "es2017",
     "module": "commonjs",
     "moduleResolution": "node",
+    "rootDir": "src",
     "outDir": "dist",
-    "sourceMap": true
+    "sourceMap": true,
+    "declarationMap": true,
+    "types": ["node", "broccoli-plugin"]
   },
-  "include": ["index.ts", "lib/**/*.ts", "tests/**/*.ts"],
-  "exclude": ["node_modules", "dist", "tmp"]
+  "files": ["src/index.ts"]
 }

@@ -1,6 +1,10 @@
 {
   "defaultSeverity": "error",
-  "extends": ["tslint:recommended"],
+  "extends": [
+    "tslint:recommended",
+    "tslint-plugin-prettier",
+    "tslint-config-prettier"
+  ],
   "jsRules": {},
   "rules": {
     "no-floating-promises": true,
@@ -12,7 +16,8 @@
     },
     "object-literal-key-quotes": false,
     "prefer-for-of": false,
-    "arrow-parens": false
+    "arrow-parens": false,
+    "interface-name": false
   },
   "rulesDirectory": []
 }

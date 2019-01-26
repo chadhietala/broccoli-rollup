@@ -6,3 +6,8 @@ node_js:
 cache: yarn
 script:
   - yarn test
+branches:
+  only:
+    - master
+    # npm version tags
+    - /^v\d+\.\d+\.\d+/
