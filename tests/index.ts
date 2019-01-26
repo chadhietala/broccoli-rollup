@@ -129,9 +129,9 @@ export default index;
         await output.build();
       } catch (e) {
         errorWasThrown = true;
-        assert.ok(e.message.startsWith('Could not load'));
+        assert.ok(e.message.startsWith("Could not resolve './minus'"));
       }
-      assert.ok(errorWasThrown);
+      assert.ok(errorWasThrown, 'error was thrown');
 
       input.write({
         'index.js': 'import add from "./add"; export default add(1);',
@@ -225,7 +225,6 @@ export default index;
       try {
         await output.build();
 
-        // var add = x => x + x;\n\nconst two = add(1);\n\nexport default two;\n//# sourceMappingURL=out.js.map
         assert.deepEqual(output.read(), {
           dist: {
             'out.js': `var add = x => x + x;
@@ -233,7 +232,8 @@ export default index;
 const two = add(1);
 
 export default two;
-//# sourceMappingURL=out.js.map`,
+//# sourceMappingURL=out.js.map
+`,
             'out.js.map':
               '{"version":3,"file":"out.js","sources":["../add.js","../index.js"],"sourcesContent":["export default x => x + x;","import add from \\"./add\\"; const two = add(1); export default two;"],"names":[],"mappings":"AAAA,UAAe,CAAC,IAAI,CAAC,GAAG,CAAC;;qBAAC,rBCAD,MAAM,GAAG,GAAG,GAAG,CAAC,CAAC,CAAC,CAAC;;;;"}',
             'out.umd.js':
