@@ -1,7 +1,7 @@
 import { InputOptions, OutputOptions, rollup, RollupCache } from 'rollup';
+import { heimdall } from './heimdall';
 import { ITree, treeFromEntries, treeFromPath } from './tree-diff';
 import { syncFiles } from './utils';
-import { heimdall } from './heimdall';
 
 export default class Builder {
   private inputDigests = new Map<string, string>();
