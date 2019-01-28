@@ -1,8 +1,8 @@
 import { mkdirSync } from 'fs';
 import * as path from 'path';
 import { InputOptions, OutputOptions } from 'rollup';
-import Builder from './lib/builder';
 import Plugin from './lib/plugin';
+import RollupHelper from './lib/rollup-helper';
 
 // tslint:disable:no-var-requires
 const symlinkOrCopySync: (
@@ -18,7 +18,7 @@ export = class Rollup extends Plugin {
   public cache: boolean;
   public nodeModulesPath: string;
 
-  private _builder: Builder | undefined;
+  private _rollupHelper: RollupHelper | undefined;
 
   constructor(
     node: any,
@@ -40,7 +40,7 @@ export = class Rollup extends Plugin {
     this.rollupOptions = options.rollup;
     this.cache = options.cache === undefined ? true : options.cache;
 
-    this._builder = undefined;
+    this._rollupHelper = undefined;
 
     if (
       options.nodeModulesPath !== undefined &&
@@ -56,12 +56,12 @@ export = class Rollup extends Plugin {
   }
 
   public async build() {
-    let builder = this._builder;
-    if (builder === undefined) {
+    let rollupHelper = this._rollupHelper;
+    if (rollupHelper === undefined) {
       symlinkOrCopySync(this.nodeModulesPath, `${this.cachePath}/node_modules`);
       const buildPath = `${this.cachePath}/build`;
       mkdirSync(buildPath);
-      builder = this._builder = new Builder(
+      rollupHelper = this._rollupHelper = new RollupHelper(
         this.inputPaths[0],
         buildPath,
         this.outputPath,
@@ -73,8 +73,8 @@ export = class Rollup extends Plugin {
 
     const originalWorkingDir = process.cwd();
     try {
-      process.chdir(builder.buildPath);
-      await builder.build();
+      process.chdir(rollupHelper.buildPath);
+      await rollupHelper.build();
     } finally {
       process.chdir(originalWorkingDir);
     }

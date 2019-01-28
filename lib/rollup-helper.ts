@@ -3,7 +3,7 @@ import { heimdall } from './heimdall';
 import { ITree, treeFromEntries, treeFromPath } from './tree-diff';
 import { syncFiles } from './utils';
 
-export default class Builder {
+export default class RollupHelper {
   private inputDigests = new Map<string, string>();
   private outputDigests = new Map<string, string>();
   private cache: RollupCache | undefined;
