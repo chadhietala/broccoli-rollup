@@ -136,7 +136,8 @@ export = class Rollup extends Plugin {
     }
 
     const options = this._loadOptions();
-    options.input = this._mapInput(options.input);
+    // rollup should error if missing input
+    options.input = this._mapInput(options.input!);
 
     const token = heimdall.start('rollup');
 

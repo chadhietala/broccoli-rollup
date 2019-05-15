@@ -1,0 +1,7 @@
+{
+  "all": true,
+  "per-file": false,
+  "include": ["dist/**", "lib/**"],
+  "exclude": ["dist/tests/**"],
+  "extension": ["js", "ts"]
+}
