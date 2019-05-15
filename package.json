@@ -25,7 +25,8 @@
   ],
   "files": [
     "dist/",
-    "!dist/tests"
+    "!dist/tests",
+    "lib/"
   ],
   "main": "dist/index.js",
   "scripts": {
