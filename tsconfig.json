@@ -2,20 +2,12 @@
   "compilerOptions": {
     "strict": true,
     "declaration": true,
-    "target": "es2015",
+    "target": "es2017",
     "module": "commonjs",
     "moduleResolution": "node",
     "outDir": "dist",
     "sourceMap": true
   },
-  "include": [
-    "index.ts",
-    "lib/**/*.ts",
-    "tests/**/*.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "tmp"
-  ]
+  "include": ["index.ts", "lib/**/*.ts", "tests/**/*.ts"],
+  "exclude": ["node_modules", "dist", "tmp"]
 }

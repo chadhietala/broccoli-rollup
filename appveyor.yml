@@ -3,29 +3,22 @@
 # Test against these versions of Node.js.
 environment:
   matrix:
-    - nodejs_version: "6"
-    - nodejs_version: "8"
-    - nodejs_version: "10"
-
+    - nodejs_version: '8'
+    - nodejs_version: '10'
+cache:
+  - "%LOCALAPPDATA%\\Yarn"
 # Install scripts. (runs after repo cloning)
 install:
   - git rev-parse HEAD
-  # Get the latest stable version of Node 0.STABLE.latest
   - ps: Install-Product node $env:nodejs_version
-  # Typical npm stuff.
-  - md C:\nc
-  - npm config set cache C:\nc
-  - npm version
-  - npm install --no-optional
+  - yarn install --frozen-lockfile
 
 # Post-install test scripts.
 test_script:
-  # Output useful info for debugging.
-  - npm version
-  - cmd: npm test
+  - cmd: yarn test
 
 # Don't actually build.
 build: off
 
 # Set build version format here instead of in the admin panel.
-version: "{build}"
+version: '{build}'
