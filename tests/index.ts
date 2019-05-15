@@ -3,6 +3,7 @@ import {
   createTempDir,
   Disposable,
   TempDir,
+  Tree,
 } from 'broccoli-test-helper';
 import Rollup = require('../index');
 // tslint:disable-next-line:no-var-requires
@@ -295,15 +296,18 @@ export default two;
 
         await output.build();
 
-        assert.deepEqual(output.read(), {
-          chunks: {
-            'a.js':
-              "import { a as e } from './chunk-924c0816.js';\n\nconst num1 = 1;\n\nconst out = num1 + e;\n\nexport { out };\n",
-            'b.js':
-              "import { a as e } from './chunk-924c0816.js';\n\nconst num2 = 2;\n\nconst out = num2 + e;\n\nexport { out };\n",
-            'chunk-924c0816.js': 'const num3 = 3;\n\nexport { num3 as a };\n',
-          },
-        });
+        let chunks = output.read().chunks as Tree;
+        let filenames = Object.keys(chunks);
+        assert.equal(filenames.length, 3, 'should have 3 chunks');
+        let sharedChunkFilename = filenames[2];
+
+        assert.equal(chunks[sharedChunkFilename], "const num3 = 3;\n\nexport { num3 as a };\n", 'shared chunk contents should be correct');
+        assert.equal(chunks['a.js'],
+            `import { a as e } from './${sharedChunkFilename}';\n\nconst num1 = 1;\n\nconst out = num1 + e;\n\nexport { out };\n`,
+            'a.js contents should be correct');
+        assert.equal(chunks['b.js'],
+            `import { a as e } from './${sharedChunkFilename}';\n\nconst num2 = 2;\n\nconst out = num2 + e;\n\nexport { out };\n`,
+            'b.js contents should be correct');
       });
     });
   });
