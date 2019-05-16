@@ -1,24 +1,19 @@
-import {
-  createBuilder,
-  createTempDir,
-  Disposable,
-  TempDir,
-  Tree,
-} from 'broccoli-test-helper';
-import Rollup = require('../index');
-// tslint:disable-next-line:no-var-requires
-const mergeTrees: (input: any[]) => any = require('broccoli-merge-trees');
+const { createBuilder, createTempDir } = require('broccoli-test-helper');
+const mergeTrees = require('broccoli-merge-trees');
+const { default: rollup } = require('../index');
+
 const describe = QUnit.module;
 const it = QUnit.test;
 
-// tslint:disable:max-line-length
+/** @typedef {import('broccoli-test-helper').Disposable} Disposable */
+/** @typedef {import('broccoli-test-helper').TempDir} TempDir */
 
 describe('Staging files smoke tests', () => {
   it('handles merged trees and building from staging', async assert => {
     await using(async use => {
       const input1 = use(await createTempDir());
       const input2 = use(await createTempDir());
-      const node = new Rollup(mergeTrees([input1.path(), input2.path()]), {
+      const node = rollup(mergeTrees([input1.path(), input2.path()]), {
         rollup: {
           input: 'index.js',
           output: {
@@ -56,7 +51,7 @@ describe('BroccoliRollup', () => {
   it('test build: initial update noop', async assert => {
     await using(async use => {
       const input = use(await createTempDir());
-      const subject = new Rollup(input.path(), {
+      const subject = rollup(input.path(), {
         rollup: {
           input: 'index.js',
           output: {
@@ -130,9 +125,12 @@ export default index;
         await output.build();
       } catch (e) {
         errorWasThrown = true;
-        assert.ok(e.message.startsWith('Could not load'));
+        assert.ok(
+          /Could not.*minus\.js/.test(e.message),
+          `expected error about minus.js missing but got ${e.message}`,
+        );
       }
-      assert.ok(errorWasThrown);
+      assert.ok(errorWasThrown, 'error was thrown');
 
       input.write({
         'index.js': 'import add from "./add"; export default add(1);',
@@ -160,7 +158,8 @@ export default index;
   });
 
   describe('targets', hooks => {
-    let input: TempDir;
+    /** @type {TempDir} */
+    let input;
     hooks.beforeEach(async () => {
       input = await createTempDir();
       input.write({
@@ -176,7 +175,7 @@ export default index;
 
     // supports multiple targets
     it('works with one explicit target', async assert => {
-      const node = new Rollup(input.path(), {
+      const node = rollup(input.path(), {
         rollup: {
           input: 'index.js',
           output: [
@@ -185,7 +184,7 @@ export default index;
               format: 'umd',
               name: 'thing',
             },
-          ] as any,
+          ],
         },
       });
       const output = createBuilder(node);
@@ -204,7 +203,7 @@ export default index;
     });
 
     it('works with many targets', async assert => {
-      const node = new Rollup(input.path(), {
+      const node = rollup(input.path(), {
         rollup: {
           input: 'index.js',
           output: [
@@ -218,7 +217,7 @@ export default index;
               format: 'es',
               sourcemap: true,
             },
-          ] as any,
+          ],
         },
       });
 
@@ -226,7 +225,6 @@ export default index;
       try {
         await output.build();
 
-        // var add = x => x + x;\n\nconst two = add(1);\n\nexport default two;\n//# sourceMappingURL=out.js.map
         assert.deepEqual(output.read(), {
           dist: {
             'out.js': `var add = x => x + x;
@@ -234,7 +232,8 @@ export default index;
 const two = add(1);
 
 export default two;
-//# sourceMappingURL=out.js.map`,
+//# sourceMappingURL=out.js.map
+`,
             'out.js.map':
               '{"version":3,"file":"out.js","sources":["../add.js","../index.js"],"sourcesContent":["export default x => x + x;","import add from \\"./add\\"; const two = add(1); export default two;"],"names":[],"mappings":"AAAA,UAAe,CAAC,IAAI,CAAC,GAAG,CAAC;;qBAAC,rBCAD,MAAM,GAAG,GAAG,GAAG,CAAC,CAAC,CAAC,CAAC;;;;"}',
             'out.umd.js':
@@ -251,7 +250,7 @@ export default two;
     it('should throw if nodeModulesPath is relative', assert => {
       assert.throws(
         () =>
-          new Rollup('lib', {
+          rollup('lib', {
             nodeModulesPath: './',
             rollup: {
               input: 'index.js',
@@ -272,9 +271,9 @@ export default two;
     it('can code split', async assert => {
       await using(async use => {
         const input = use(await createTempDir());
-        const subject = new Rollup(input.path(), {
+        const subject = rollup(input.path(), {
           rollup: {
-            input: ['a.js', 'b.js'],
+            input: ['a.js', 'b.js', 'f.js'],
             output: {
               dir: 'chunks',
               format: 'es',
@@ -292,42 +291,193 @@ export default two;
           'c.js': 'const num1 = 1; export default num1;',
           'd.js': 'const num2 = 2; export default num2;',
           'e.js': 'const num3 = 3; export default num3;',
+          'f.js': 'export const num4 = 4;',
         });
 
         await output.build();
 
-        let chunks = output.read().chunks as Tree;
-        let filenames = Object.keys(chunks);
-        assert.equal(filenames.length, 3, 'should have 3 chunks');
-        let sharedChunkFilename = filenames[2];
+        assert.deepEqual(output.read(), {
+          chunks: {
+            'a.js':
+              "import { a as e } from './chunk-9db0917b.js';\n\nconst num1 = 1;\n\nconst out = num1 + e;\n\nexport { out };\n",
+            'b.js':
+              "import { a as e } from './chunk-9db0917b.js';\n\nconst num2 = 2;\n\nconst out = num2 + e;\n\nexport { out };\n",
+            'chunk-9db0917b.js': 'const num3 = 3;\n\nexport { num3 as a };\n',
+            'f.js': 'const num4 = 4;\n\nexport { num4 };\n',
+          },
+        });
 
-        assert.equal(chunks[sharedChunkFilename], "const num3 = 3;\n\nexport { num3 as a };\n", 'shared chunk contents should be correct');
-        assert.equal(chunks['a.js'],
-            `import { a as e } from './${sharedChunkFilename}';\n\nconst num1 = 1;\n\nconst out = num1 + e;\n\nexport { out };\n`,
-            'a.js contents should be correct');
-        assert.equal(chunks['b.js'],
-            `import { a as e } from './${sharedChunkFilename}';\n\nconst num2 = 2;\n\nconst out = num2 + e;\n\nexport { out };\n`,
-            'b.js contents should be correct');
+        await output.build();
+
+        assert.deepEqual(output.changes(), {}, 'no op build');
+
+        input.write({
+          'd.js':
+            'const num2 = 2; export default num2; export const foo = "bar"',
+        });
+
+        await output.build();
+
+        assert.deepEqual(output.changes(), {}, 'no changes from unused export');
+
+        input.write({
+          'foo.css': 'unrelated file',
+        });
+
+        await output.build();
+
+        assert.deepEqual(
+          output.changes(),
+          {},
+          'no changes from unrelated input',
+        );
+
+        input.write({
+          'f.js': 'export { foo } from "./other"',
+        });
+
+        try {
+          await output.build();
+        } catch (e) {
+          assert.ok(
+            /Could not.*other/.test(e.message),
+            `expected error about other missing but got ${e.message}`,
+          );
+        }
+
+        input.write({
+          'other.js': '',
+        });
+
+        try {
+          await output.build();
+        } catch (e) {
+          assert.ok(
+            /foo.*not exported.*other/.test(e.message),
+            `expected error about foo not exported from other but got ${
+              e.message
+            }`,
+          );
+        }
+
+        // our output should still be the same as before noops and errors
+        assert.deepEqual(output.read(), {
+          chunks: {
+            'a.js':
+              "import { a as e } from './chunk-9db0917b.js';\n\nconst num1 = 1;\n\nconst out = num1 + e;\n\nexport { out };\n",
+            'b.js':
+              "import { a as e } from './chunk-9db0917b.js';\n\nconst num2 = 2;\n\nconst out = num2 + e;\n\nexport { out };\n",
+            'chunk-9db0917b.js': 'const num3 = 3;\n\nexport { num3 as a };\n',
+            'f.js': 'const num4 = 4;\n\nexport { num4 };\n',
+          },
+        });
+
+        input.write({
+          'other.js': 'export function foo() {};',
+        });
+
+        await output.build();
+
+        assert.deepEqual(
+          output.changes(),
+          {
+            'chunks/f.js': 'change',
+          },
+          'only the entry point affected by the change should change',
+        );
+
+        assert.deepEqual(output.read(), {
+          chunks: {
+            'a.js':
+              "import { a as e } from './chunk-9db0917b.js';\n\nconst num1 = 1;\n\nconst out = num1 + e;\n\nexport { out };\n",
+            'b.js':
+              "import { a as e } from './chunk-9db0917b.js';\n\nconst num2 = 2;\n\nconst out = num2 + e;\n\nexport { out };\n",
+            'chunk-9db0917b.js': 'const num3 = 3;\n\nexport { num3 as a };\n',
+            'f.js': 'function foo() {}\n\nexport { foo };\n',
+          },
+        });
+
+        input.write({
+          'other.js': 'export { foo } from "./d";',
+        });
+
+        await output.build();
+
+        assert.deepEqual(
+          output.changes(),
+          {
+            'chunks/b.js': 'change',
+            'chunks/chunk-2f73092a.js': 'create',
+            'chunks/f.js': 'change',
+          },
+          'only the entry point affected by the change should change',
+        );
+
+        assert.deepEqual(output.read(), {
+          chunks: {
+            'a.js':
+              "import { a as e } from './chunk-9db0917b.js';\n\nconst num1 = 1;\n\nconst out = num1 + e;\n\nexport { out };\n",
+            'b.js':
+              "import { a as e } from './chunk-9db0917b.js';\nimport { a as d } from './chunk-2f73092a.js';\n\nconst out = d + e;\n\nexport { out };\n",
+            'chunk-2f73092a.js':
+              'const num2 = 2; const foo = "bar";\n\nexport { num2 as a, foo as b };\n',
+            'chunk-9db0917b.js': 'const num3 = 3;\n\nexport { num3 as a };\n',
+            'f.js': "export { b as foo } from './chunk-2f73092a.js';\n",
+          },
+        });
+
+        // undo
+        input.write({
+          'other.js': 'export function foo() {};',
+        });
+
+        await output.build();
+
+        assert.deepEqual(
+          output.changes(),
+          {
+            'chunks/b.js': 'change',
+            'chunks/chunk-2f73092a.js': 'unlink',
+            'chunks/f.js': 'change',
+          },
+          'only the entry point affected by the change should change',
+        );
+
+        assert.deepEqual(output.read(), {
+          chunks: {
+            'a.js':
+              "import { a as e } from './chunk-9db0917b.js';\n\nconst num1 = 1;\n\nconst out = num1 + e;\n\nexport { out };\n",
+            'b.js':
+              "import { a as e } from './chunk-9db0917b.js';\n\nconst num2 = 2;\n\nconst out = num2 + e;\n\nexport { out };\n",
+            'chunk-9db0917b.js': 'const num3 = 3;\n\nexport { num3 as a };\n',
+            'f.js': 'function foo() {}\n\nexport { foo };\n',
+          },
+        });
       });
     });
   });
 });
 
-type UseCallback = <T extends Disposable>(disposable: T) => T;
+/** @typedef {<T extends Disposable>(disposable: T) => T} UseCallback */
 
-// tslint:disable:no-conditional-assignment
-async function using(body: (use: UseCallback) => Promise<void>) {
-  const disposables: Disposable[] = [];
-  const use: UseCallback = disposable => {
+/**
+ * @param {(use: UseCallback) => Promise<void>} body
+ */
+async function using(body) {
+  /** @type {Disposable[]} */
+  const disposables = [];
+  /** @type {UseCallback} */
+  const use = disposable => {
     disposables.push(disposable);
     return disposable;
   };
   try {
     await body(use);
   } finally {
-    let disposable;
-    while ((disposable = disposables.pop())) {
+    let disposable = disposables.pop();
+    while (disposable !== undefined) {
       await disposable.dispose();
+      disposable = disposables.pop();
     }
   }
 }
