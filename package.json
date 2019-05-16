@@ -1,9 +1,10 @@
 {
   "name": "broccoli-rollup",
   "version": "4.1.0",
-  "description": "Rollup integration with broccoli",
+  "description": "A broccoli plugin that uses rollup.js on its input",
   "keywords": [
     "broccoli",
+    "broccoli plugin",
     "rollup"
   ],
   "homepage": "https://github.com/chadhietala/broccoli-rollup#readme",

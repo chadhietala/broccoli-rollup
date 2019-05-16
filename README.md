@@ -1,45 +1,86 @@
-# Usage [![Build Status](https://travis-ci.org/chadhietala/broccoli-rollup.svg?branch=master)](https://travis-ci.org/chadhietala/broccoli-rollup)
+# `broccoli-rollup`
+[![Build Status](https://travis-ci.org/chadhietala/broccoli-rollup.svg?branch=master)](https://travis-ci.org/chadhietala/broccoli-rollup)
 
-Broccoli-rollup is a simple wrapper around [Rollup](https://github.com/rollup/rollup). In the options object pass the [rollup options](https://rollupjs.org/guide/en#big-list-of-options).
+A [broccoli](https://broccoli.build/) plugin that uses [rollup.js](https://rollupjs.org/) on its input.
 
-#### basic
+## Usage
+
+### Basic
 
 ```js
-var Rollup = require('broccoli-rollup');
-var lib = 'lib';
+// Brocfile.js
+import rollup from "broccoli-rollup";
 
-module.exports = new Rollup(lib, {
+export default () => rollup('lib', {
   // nodeModulesPath: string Defaults to process.cwd()
   rollup: {
-    input: 'lib/index.js',
+    input: 'index.js',
     output: {
-      file: 'my-lib.js',
-      format: 'es',
-    },
-    // cache: true|false Defaults to true
+      file: 'bundle.js',
+      format: 'es'
+    }
   }
-})
+});
 ```
 
-#### \w targets
+### Code Splitting
+```js
+// Brocfile.js
+import rollup from "broccoli-rollup";
+
+export default () => rollup('lib', {
+  // nodeModulesPath: string Defaults to process.cwd()
+  rollup: {
+    input: 'index.js',
+    output: {
+      dir: 'chunks',
+      format: 'es'
+    }
+  }
+});
+```
+
+### Multiple Output
 
 ```js
-var Rollup = require('broccoli-rollup');
-var lib = 'lib';
+// Brocfile.js
+import rollup from "broccoli-rollup";
 
-module.exports = new Rollup(lib, {
+export default () => rollup('lib', {
+  // nodeModulesPath: string Defaults to process.cwd()
   rollup: {
-    input: 'lib/index.js',
+    input: 'index.js',
     output: [
       {
-        file: 'my-lib.amd.js'
-        format: 'amd',
+        file: 'my-lib.amd.js',
+        format: 'amd'
       },
       {
-        file: 'my-lib.iife.js'
-        format: 'iife',
+        file: 'my-lib.iife.js',
+        name: "MyLib",
+        format: 'iife'
       }
     ]
   }
-})
+});
 ```
+
+## Notes and Caveats
+
+Broccoli is designed around immutable input and although rollup does expose enough
+in the build output for us to write it to disk, this doesn't work with the `onwrite` plugin hook
+and requires a significant amount of code to get feature parity with rollup's
+`buildOutput.write(outputOptions)`.
+
+So to get the highest compatibility and feature parity, the build flow is:
+1) sync `node.inputPaths[0]` to `${node.cachePath}/build`
+2) symlink `options.nodeModulesPath` to `${node.cachePath}/node_modules`
+3) change the working directory to `${node.cachePath}/build` (rollup doesn't allow this to be passed in and plugins may also the use cwd)
+4) run rollup
+5) restore the working directory
+6) sync `${node.cachePath}/build` to `node.outputPath` for all files that are different from the input.
+
+If you have any plugins that require hard-coded paths into `node_modules`,
+please note that `node_modules` is symlinked above the build path.
+
+So instead of doing `node_modules/x` you need to do `../node_modules/x`.
