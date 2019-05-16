@@ -38,7 +38,8 @@ export class BroccoliRollup extends BroccoliPlugin {
       persistentOutput: true,
     });
     this.rollupOptions = options.rollup;
-    this.cache = options.cache === undefined ? true : options.cache;
+    this.cache =
+      options.rollup.cache === false ? false : options.cache !== false;
 
     this._rollupHelper = undefined;
 
