@@ -128,11 +128,6 @@ export function normalizeArray<T>(arr: T | T[]) {
 }
 
 // tslint:disable:no-var-requires
-export const symlinkOrCopy: (
-  src: string,
-  dst: string,
-) => void = require('symlink-or-copy').sync;
-
 export const nodeModulesPath: (
   cwd: string,
 ) => string = require('node-modules-path');

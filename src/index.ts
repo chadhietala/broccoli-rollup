@@ -1,8 +1,9 @@
 import BroccoliPlugin = require('broccoli-plugin');
 import { mkdirSync } from 'fs';
 import * as path from 'path';
+import { sync as symlinkOrCopy } from 'symlink-or-copy';
 import RollupHelper from './rollup-helper';
-import { nodeModulesPath, normalizeArray, symlinkOrCopy } from './utils';
+import { nodeModulesPath, normalizeArray } from './utils';
 
 export type InputOptions = import('rollup').InputOptions;
 export type OutputOptions = import('rollup').OutputOptions;
