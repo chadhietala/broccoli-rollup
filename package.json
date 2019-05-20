@@ -42,8 +42,8 @@
     "test": "yarn lint && yarn test:check && yarn test:coverage",
     "posttest": "yarn report",
     "test:check": "tsc -p tests",
-    "test:coverage": "nyc -r lcov qunit tests",
-    "test:fast": "qunit tests"
+    "test:coverage": "nyc -r lcov qunit tests/*-test.js",
+    "test:fast": "qunit tests/*-test.js"
   },
   "dependencies": {
     "@types/broccoli-plugin": "^1.3.0",

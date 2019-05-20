@@ -8,5 +8,5 @@
     "moduleResolution": "node",
     "noEmit": true
   },
-  "include": ["types.d.ts", "**/*.js"]
+  "include": ["types.d.ts", "**/*-test.js"]
 }
