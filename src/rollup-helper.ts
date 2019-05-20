@@ -36,9 +36,15 @@ export default class RollupHelper {
       return;
     }
 
-    const outputTree = await this.rollup(inputTree);
+    const originalWorkingDir = process.cwd();
+    try {
+      process.chdir(this.buildPath);
 
-    this.syncOutput(outputTree);
+      const outputTree = await this.rollup(inputTree);
+      this.syncOutput(outputTree);
+    } finally {
+      process.chdir(originalWorkingDir);
+    }
   }
 
   private syncInput(): Tree | undefined {
