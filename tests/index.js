@@ -157,6 +157,134 @@ export default index;
     });
   });
 
+  it('can use relative paths for input nodes: initial update noop', async assert => {
+    await using(async use => {
+      // ensure we reset working directory
+      const ROOT = process.cwd();
+
+      const project = use(await createTempDir());
+      project.write({ 'relative-input-path': {} });
+
+      try {
+        process.chdir(project.path());
+
+        const subject = rollup('relative-input-path', {
+          rollup: {
+            input: 'index.js',
+            output: {
+              file: 'out.js',
+              format: 'es',
+            },
+          },
+        });
+        const output = use(createBuilder(subject));
+        // INITIAL
+        project.write({
+          'relative-input-path': {
+            'add.js': 'export default x => x + x;',
+            'index.js':
+              'import add from "./add"; const two = add(1); export default two;',
+          },
+        });
+        await output.build();
+
+        assert.deepEqual(output.read(), {
+          'out.js': `var add = x => x + x;
+
+const two = add(1);
+
+export default two;
+`,
+        });
+        assert.deepEqual(output.changes(), {
+          'out.js': 'create',
+        });
+
+        // UPDATE
+        project.write({
+          'relative-input-path': {
+            'minus.js': `export default x => x - x;`,
+          },
+        });
+        await output.build();
+
+        assert.deepEqual(output.read(), {
+          'out.js': `var add = x => x + x;
+
+const two = add(1);
+
+export default two;
+`,
+        });
+        assert.deepEqual(output.changes(), {});
+
+        project.write({
+          'relative-input-path': {
+            'index.js':
+              'import add from "./add"; import minus from "./minus"; export default { a: add(1), b: minus(1) };',
+          },
+        });
+
+        await output.build();
+
+        assert.deepEqual(output.read(), {
+          'out.js': `var add = x => x + x;
+
+var minus = x => x - x;
+
+var index = { a: add(1), b: minus(1) };
+
+export default index;
+`,
+        });
+        assert.deepEqual(output.changes(), {
+          'out.js': 'change',
+        });
+
+        project.write({ 'relative-input-path': { 'minus.js': null } });
+
+        let errorWasThrown = false;
+        try {
+          await output.build();
+        } catch (e) {
+          errorWasThrown = true;
+          assert.ok(
+            /Could not.*minus\.js/.test(e.message),
+            `expected error about minus.js missing but got ${e.message}`,
+          );
+        }
+        assert.ok(errorWasThrown, 'error was thrown');
+
+        project.write({
+          'relative-input-path': {
+            'index.js': 'import add from "./add"; export default add(1);',
+          },
+        });
+
+        await output.build();
+
+        assert.deepEqual(output.read(), {
+          'out.js': `var add = x => x + x;
+
+var index = add(1);
+
+export default index;
+`,
+        });
+        assert.deepEqual(output.changes(), {
+          'out.js': 'change',
+        });
+
+        // NOOP
+        await output.build();
+
+        assert.deepEqual(output.changes(), {});
+      } finally {
+        process.chdir(ROOT);
+      }
+    });
+  });
+
   describe('targets', hooks => {
     /** @type {TempDir} */
     let input;
