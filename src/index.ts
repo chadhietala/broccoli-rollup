@@ -74,12 +74,6 @@ export class BroccoliRollup extends BroccoliPlugin {
       );
     }
 
-    const originalWorkingDir = process.cwd();
-    try {
-      process.chdir(rollupHelper.buildPath);
-      await rollupHelper.build();
-    } finally {
-      process.chdir(originalWorkingDir);
-    }
+    await rollupHelper.build();
   }
 }

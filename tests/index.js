@@ -1,9 +1,11 @@
+const fs = require('fs');
 const { createBuilder, createTempDir } = require('broccoli-test-helper');
 const mergeTrees = require('broccoli-merge-trees');
 const { default: rollup } = require('../index');
 
 const describe = QUnit.module;
 const it = QUnit.test;
+const ROOT = process.cwd();
 
 /** @typedef {import('broccoli-test-helper').Disposable} Disposable */
 /** @typedef {import('broccoli-test-helper').TempDir} TempDir */
@@ -47,7 +49,12 @@ describe('Staging files smoke tests', () => {
   });
 });
 
-describe('BroccoliRollup', () => {
+describe('BroccoliRollup', hooks => {
+
+  hooks.afterEach(assert => {
+    assert.equal(process.cwd(), ROOT, 'the current working directory is reset');
+  });
+
   it('test build: initial update noop', async assert => {
     await using(async use => {
       const input = use(await createTempDir());
@@ -69,6 +76,7 @@ describe('BroccoliRollup', () => {
       });
       await output.build();
 
+      assert.equal(process.cwd(), ROOT, 'the current working directory is reset');
       assert.deepEqual(output.read(), {
         'out.js': `var add = x => x + x;
 
@@ -87,6 +95,7 @@ export default two;
       });
       await output.build();
 
+      assert.equal(process.cwd(), ROOT, 'the current working directory is reset');
       assert.deepEqual(output.read(), {
         'out.js': `var add = x => x + x;
 
@@ -104,6 +113,7 @@ export default two;
 
       await output.build();
 
+      assert.equal(process.cwd(), ROOT, 'the current working directory is reset');
       assert.deepEqual(output.read(), {
         'out.js': `var add = x => x + x;
 
@@ -131,6 +141,7 @@ export default index;
         );
       }
       assert.ok(errorWasThrown, 'error was thrown');
+      assert.equal(process.cwd(), ROOT, 'the current working directory is reset');
 
       input.write({
         'index.js': 'import add from "./add"; export default add(1);',
@@ -138,6 +149,7 @@ export default index;
 
       await output.build();
 
+      assert.equal(process.cwd(), ROOT, 'the current working directory is reset');
       assert.deepEqual(output.read(), {
         'out.js': `var add = x => x + x;
 
@@ -153,14 +165,147 @@ export default index;
       // NOOP
       await output.build();
 
+      assert.equal(process.cwd(), ROOT, 'the current working directory is reset');
       assert.deepEqual(output.changes(), {});
     });
   });
 
-  describe('targets', hooks => {
+  it('can use relative paths for input nodes: initial update noop', async assert => {
+    await using(async use => {
+      const project = use(await createTempDir());
+      project.write({ 'relative-input-path': {} });
+
+      try {
+        const projectRoot = fs.realpathSync(project.path());
+        process.chdir(project.path());
+
+        const subject = rollup('relative-input-path', {
+          rollup: {
+            input: 'index.js',
+            output: {
+              file: 'out.js',
+              format: 'es',
+            },
+          },
+        });
+        const output = use(createBuilder(subject));
+        // INITIAL
+        project.write({
+          'relative-input-path': {
+            'add.js': 'export default x => x + x;',
+            'index.js':
+              'import add from "./add"; const two = add(1); export default two;',
+          },
+        });
+        await output.build();
+
+        assert.equal(process.cwd(), projectRoot, 'the current working directory is reset');
+        assert.deepEqual(output.read(), {
+          'out.js': `var add = x => x + x;
+
+const two = add(1);
+
+export default two;
+`,
+        });
+        assert.deepEqual(output.changes(), {
+          'out.js': 'create',
+        });
+
+        // UPDATE
+        project.write({
+          'relative-input-path': {
+            'minus.js': `export default x => x - x;`,
+          },
+        });
+        await output.build();
+
+        assert.equal(process.cwd(), projectRoot, 'the current working directory is reset');
+        assert.deepEqual(output.read(), {
+          'out.js': `var add = x => x + x;
+
+const two = add(1);
+
+export default two;
+`,
+        });
+        assert.deepEqual(output.changes(), {});
+
+        project.write({
+          'relative-input-path': {
+            'index.js':
+              'import add from "./add"; import minus from "./minus"; export default { a: add(1), b: minus(1) };',
+          },
+        });
+
+        await output.build();
+
+        assert.equal(process.cwd(), projectRoot, 'the current working directory is reset');
+        assert.deepEqual(output.read(), {
+          'out.js': `var add = x => x + x;
+
+var minus = x => x - x;
+
+var index = { a: add(1), b: minus(1) };
+
+export default index;
+`,
+        });
+        assert.deepEqual(output.changes(), {
+          'out.js': 'change',
+        });
+
+        project.write({ 'relative-input-path': { 'minus.js': null } });
+
+        let errorWasThrown = false;
+        try {
+          await output.build();
+        } catch (e) {
+          errorWasThrown = true;
+          assert.ok(
+            /Could not.*minus\.js/.test(e.message),
+            `expected error about minus.js missing but got ${e.message}`,
+          );
+        }
+        assert.ok(errorWasThrown, 'error was thrown');
+        assert.equal(process.cwd(), projectRoot, 'the current working directory is reset');
+
+        project.write({
+          'relative-input-path': {
+            'index.js': 'import add from "./add"; export default add(1);',
+          },
+        });
+
+        await output.build();
+
+        assert.equal(process.cwd(), projectRoot, 'the current working directory is reset');
+        assert.deepEqual(output.read(), {
+          'out.js': `var add = x => x + x;
+
+var index = add(1);
+
+export default index;
+`,
+        });
+        assert.deepEqual(output.changes(), {
+          'out.js': 'change',
+        });
+
+        // NOOP
+        await output.build();
+
+        assert.equal(process.cwd(), projectRoot, 'the current working directory is reset');
+        assert.deepEqual(output.changes(), {});
+      } finally {
+        process.chdir(ROOT);
+      }
+    });
+  });
+
+  describe('targets', targetsHooks => {
     /** @type {TempDir} */
     let input;
-    hooks.beforeEach(async () => {
+    targetsHooks.beforeEach(async () => {
       input = await createTempDir();
       input.write({
         'add.js': 'export default x => x + x;',
@@ -169,7 +314,7 @@ export default index;
       });
     });
 
-    hooks.afterEach(async () => {
+    targetsHooks.afterEach(async () => {
       await input.dispose();
     });
 
