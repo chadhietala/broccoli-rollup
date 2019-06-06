@@ -302,6 +302,95 @@ export default index;
     });
   });
 
+  it('supports Rollup plugins that use null byte paths', async assert => {
+    await using(async use => {
+      const input = use(await createTempDir());
+
+      const NULL_MODULE_ID = '\0add';
+      const subject = rollup(input.path(), {
+        rollup: {
+          input: 'index.js',
+          output: {
+            file: 'out.js',
+            format: 'es',
+          },
+          plugins: [{
+            name: 'null-byter',
+            resolveId(importee) {
+              if (importee === NULL_MODULE_ID) {
+                return importee;
+              }
+            },
+            load(id) {
+              if (id === NULL_MODULE_ID) {
+                return 'export default x => x + x';
+              }
+              return null;
+            }
+          }]
+        },
+      });
+      const output = use(createBuilder(subject));
+
+      // INITIAL
+      input.write({
+        'index.js':
+          `import add from "${NULL_MODULE_ID}"; const two = add(1); export default two;`,
+      });
+      await output.build();
+
+      assert.deepEqual(output.read(), {
+        'out.js': `var add = x => x + x;
+
+const two = add(1);
+
+export default two;
+`,
+      });
+      assert.deepEqual(output.changes(), {
+        'out.js': 'create',
+      });
+
+      // UPDATE
+      input.write({
+      });
+      await output.build();
+
+      assert.deepEqual(output.read(), {
+        'out.js': `var add = x => x + x;
+
+const two = add(1);
+
+export default two;
+`,
+      });
+      assert.deepEqual(output.changes(), {});
+
+      input.write({
+        'index.js':
+          `import add from "${NULL_MODULE_ID}"; import minus from "./minus"; export default { a: add(1), b: minus(1) };`,
+        'minus.js': `export default x => x - x;`,
+      });
+
+      await output.build();
+
+      assert.deepEqual(output.read(), {
+        'out.js': `var add = x => x + x;
+
+var minus = x => x - x;
+
+var index = { a: add(1), b: minus(1) };
+
+export default index;
+`,
+      });
+      assert.deepEqual(output.changes(), {
+        'out.js': 'change',
+      });
+    });
+  });
+
+
   describe('targets', targetsHooks => {
     /** @type {TempDir} */
     let input;

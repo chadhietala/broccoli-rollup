@@ -1,9 +1,11 @@
 import { RollupBuild } from 'rollup';
+import { createFilter } from 'rollup-pluginutils';
 import { Operation, realpath } from './utils';
 
 export default class Dependencies {
   private buildPath: string;
   private inputDependencies = new Set<string>();
+  private filter = createFilter();
 
   constructor(buildPath: string) {
     this.buildPath = realpath(buildPath);
@@ -17,6 +19,8 @@ export default class Dependencies {
     const inputDependencies = new Set<string>();
 
     for (const watchedFile of watchedFiles) {
+      if (!this.filter(watchedFile)) { continue; }
+
       const normalized = realpath(watchedFile);
       if (normalized.startsWith(buildPath)) {
         inputDependencies.add(normalized.slice(relativeStart));
