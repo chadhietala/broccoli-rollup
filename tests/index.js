@@ -428,7 +428,7 @@ export default index;
         assert.deepEqual(output.read(), {
           dist: {
             'out.umd.js':
-              "(function (global, factory) {\n\ttypeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :\n\ttypeof define === 'function' && define.amd ? define(factory) :\n\t(global = global || self, global.thing = factory());\n}(this, function () { 'use strict';\n\n\tvar add = x => x + x;\n\n\tconst two = add(1);\n\n\treturn two;\n\n}));\n",
+            "(function (global, factory) {\n\ttypeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :\n\ttypeof define === 'function' && define.amd ? define(factory) :\n\t(global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.thing = factory());\n}(this, (function () { 'use strict';\n\n\tvar add = x => x + x;\n\n\tconst two = add(1);\n\n\treturn two;\n\n})));\n",
           },
         });
       } finally {
@@ -461,17 +461,9 @@ export default index;
 
         assert.deepEqual(output.read(), {
           dist: {
-            'out.js': `var add = x => x + x;
-
-const two = add(1);
-
-export default two;
-//# sourceMappingURL=out.js.map
-`,
-            'out.js.map':
-              '{"version":3,"file":"out.js","sources":["../add.js","../index.js"],"sourcesContent":["export default x => x + x;","import add from \\"./add\\"; const two = add(1); export default two;"],"names":[],"mappings":"AAAA,UAAe,CAAC,IAAI,CAAC,GAAG,CAAC;;qBAAC,rBCAD,MAAM,GAAG,GAAG,GAAG,CAAC,CAAC,CAAC,CAAC;;;;"}',
-            'out.umd.js':
-              "(function (global, factory) {\n\ttypeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :\n\ttypeof define === 'function' && define.amd ? define(factory) :\n\t(global = global || self, global.thing = factory());\n}(this, function () { 'use strict';\n\n\tvar add = x => x + x;\n\n\tconst two = add(1);\n\n\treturn two;\n\n}));\n",
+            'out.js': "var add = x => x + x;\n\nconst two = add(1);\n\nexport default two;\n//# sourceMappingURL=out.js.map\n",
+            'out.js.map': "{\"version\":3,\"file\":\"out.js\",\"sources\":[\"../add.js\",\"../index.js\"],\"sourcesContent\":[\"export default x => x + x;\",\"import add from \\\"./add\\\"; const two = add(1); export default two;\"],\"names\":[],\"mappings\":\"AAAA,UAAe,CAAC,IAAI,CAAC,GAAG,CAAC;;ACAK,MAAC,GAAG,GAAG,GAAG,CAAC,CAAC;;;;\"}",
+            'out.umd.js': "(function (global, factory) {\n\ttypeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :\n\ttypeof define === 'function' && define.amd ? define(factory) :\n\t(global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.thing = factory());\n}(this, (function () { 'use strict';\n\n\tvar add = x => x + x;\n\n\tconst two = add(1);\n\n\treturn two;\n\n})));\n"  
           },
         });
       } finally {
@@ -532,12 +524,10 @@ export default two;
 
         assert.deepEqual(output.read(), {
           chunks: {
-            'a.js':
-              "import { a as e } from './chunk-9db0917b.js';\n\nconst num1 = 1;\n\nconst out = num1 + e;\n\nexport { out };\n",
-            'b.js':
-              "import { a as e } from './chunk-9db0917b.js';\n\nconst num2 = 2;\n\nconst out = num2 + e;\n\nexport { out };\n",
-            'chunk-9db0917b.js': 'const num3 = 3;\n\nexport { num3 as a };\n',
-            'f.js': 'const num4 = 4;\n\nexport { num4 };\n',
+            'a.js': "import { n as num3 } from './e-0f663cdb.js';\n\nconst num1 = 1;\n\nconst out = num1 + num3;\n\nexport { out };\n",
+            'b.js': "import { n as num3 } from './e-0f663cdb.js';\n\nconst num2 = 2;\n\nconst out = num2 + num3;\n\nexport { out };\n",
+            'e-0f663cdb.js': "const num3 = 3;\n\nexport { num3 as n };\n",
+            'f.js': "const num4 = 4;\n\nexport { num4 };\n"
           },
         });
 
@@ -597,12 +587,10 @@ export default two;
         // our output should still be the same as before noops and errors
         assert.deepEqual(output.read(), {
           chunks: {
-            'a.js':
-              "import { a as e } from './chunk-9db0917b.js';\n\nconst num1 = 1;\n\nconst out = num1 + e;\n\nexport { out };\n",
-            'b.js':
-              "import { a as e } from './chunk-9db0917b.js';\n\nconst num2 = 2;\n\nconst out = num2 + e;\n\nexport { out };\n",
-            'chunk-9db0917b.js': 'const num3 = 3;\n\nexport { num3 as a };\n',
-            'f.js': 'const num4 = 4;\n\nexport { num4 };\n',
+            'a.js': "import { n as num3 } from './e-0f663cdb.js';\n\nconst num1 = 1;\n\nconst out = num1 + num3;\n\nexport { out };\n",
+            'b.js': "import { n as num3 } from './e-0f663cdb.js';\n\nconst num2 = 2;\n\nconst out = num2 + num3;\n\nexport { out };\n",
+            'e-0f663cdb.js': "const num3 = 3;\n\nexport { num3 as n };\n",
+            'f.js': "const num4 = 4;\n\nexport { num4 };\n"
           },
         });
 
@@ -622,12 +610,10 @@ export default two;
 
         assert.deepEqual(output.read(), {
           chunks: {
-            'a.js':
-              "import { a as e } from './chunk-9db0917b.js';\n\nconst num1 = 1;\n\nconst out = num1 + e;\n\nexport { out };\n",
-            'b.js':
-              "import { a as e } from './chunk-9db0917b.js';\n\nconst num2 = 2;\n\nconst out = num2 + e;\n\nexport { out };\n",
-            'chunk-9db0917b.js': 'const num3 = 3;\n\nexport { num3 as a };\n',
-            'f.js': 'function foo() {}\n\nexport { foo };\n',
+            'a.js': "import { n as num3 } from './e-0f663cdb.js';\n\nconst num1 = 1;\n\nconst out = num1 + num3;\n\nexport { out };\n",
+            'b.js': "import { n as num3 } from './e-0f663cdb.js';\n\nconst num2 = 2;\n\nconst out = num2 + num3;\n\nexport { out };\n",
+            'e-0f663cdb.js': "const num3 = 3;\n\nexport { num3 as n };\n",
+            'f.js': "function foo() {}\n\nexport { foo };\n"
           },
         });
 
@@ -641,22 +627,19 @@ export default two;
           output.changes(),
           {
             'chunks/b.js': 'change',
-            'chunks/chunk-2f73092a.js': 'create',
-            'chunks/f.js': 'change',
+            'chunks/d-ebe94d27.js': 'create',
+            'chunks/f.js': 'change'          
           },
           'only the entry point affected by the change should change',
         );
 
         assert.deepEqual(output.read(), {
           chunks: {
-            'a.js':
-              "import { a as e } from './chunk-9db0917b.js';\n\nconst num1 = 1;\n\nconst out = num1 + e;\n\nexport { out };\n",
-            'b.js':
-              "import { a as e } from './chunk-9db0917b.js';\nimport { a as d } from './chunk-2f73092a.js';\n\nconst out = d + e;\n\nexport { out };\n",
-            'chunk-2f73092a.js':
-              'const num2 = 2; const foo = "bar";\n\nexport { num2 as a, foo as b };\n',
-            'chunk-9db0917b.js': 'const num3 = 3;\n\nexport { num3 as a };\n',
-            'f.js': "export { b as foo } from './chunk-2f73092a.js';\n",
+            'a.js': "import { n as num3 } from './e-0f663cdb.js';\n\nconst num1 = 1;\n\nconst out = num1 + num3;\n\nexport { out };\n",
+            'b.js': "import { n as num2 } from './d-ebe94d27.js';\nimport { n as num3 } from './e-0f663cdb.js';\n\nconst out = num2 + num3;\n\nexport { out };\n",
+            "d-ebe94d27.js": "const num2 = 2; const foo = \"bar\";\n\nexport { foo as f, num2 as n };\n",
+            'e-0f663cdb.js': "const num3 = 3;\n\nexport { num3 as n };\n",
+            'f.js': "export { f as foo } from './d-ebe94d27.js';\n"
           },
         });
 
@@ -670,21 +653,19 @@ export default two;
         assert.deepEqual(
           output.changes(),
           {
+            'chunks/d-ebe94d27.js': 'unlink',
             'chunks/b.js': 'change',
-            'chunks/chunk-2f73092a.js': 'unlink',
-            'chunks/f.js': 'change',
+            'chunks/f.js': 'change'
           },
           'only the entry point affected by the change should change',
         );
 
         assert.deepEqual(output.read(), {
           chunks: {
-            'a.js':
-              "import { a as e } from './chunk-9db0917b.js';\n\nconst num1 = 1;\n\nconst out = num1 + e;\n\nexport { out };\n",
-            'b.js':
-              "import { a as e } from './chunk-9db0917b.js';\n\nconst num2 = 2;\n\nconst out = num2 + e;\n\nexport { out };\n",
-            'chunk-9db0917b.js': 'const num3 = 3;\n\nexport { num3 as a };\n',
-            'f.js': 'function foo() {}\n\nexport { foo };\n',
+            'a.js': "import { n as num3 } from './e-0f663cdb.js';\n\nconst num1 = 1;\n\nconst out = num1 + num3;\n\nexport { out };\n",
+            'b.js': "import { n as num3 } from './e-0f663cdb.js';\n\nconst num2 = 2;\n\nconst out = num2 + num3;\n\nexport { out };\n",
+            'e-0f663cdb.js': "const num3 = 3;\n\nexport { num3 as n };\n",
+            'f.js': "function foo() {}\n\nexport { foo };\n"
           },
         });
       });
