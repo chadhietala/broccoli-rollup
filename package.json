@@ -46,7 +46,6 @@
     "test:fast": "qunit tests"
   },
   "dependencies": {
-    "@types/broccoli-plugin": "^3.0.0",
     "broccoli-plugin": "^4.0.7",
     "fs-tree-diff": "^2.0.1",
     "heimdalljs": "^0.2.6",
