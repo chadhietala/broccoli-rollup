@@ -51,10 +51,10 @@
     "fs-tree-diff": "^2.0.1",
     "heimdalljs": "^0.2.6",
     "node-modules-path": "^1.0.1",
-    "rollup": "^2.50.0",
+    "rollup": "^3.0.0",
     "rollup-pluginutils": "^2.8.1",
     "symlink-or-copy": "^1.2.0",
-    "walk-sync": "^2.2.0"
+    "walk-sync": "^3.0.0"
   },
   "devDependencies": {
     "@types/node": "^15.6.1",
