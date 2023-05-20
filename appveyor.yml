@@ -3,8 +3,9 @@
 # Test against these versions of Node.js.
 environment:
   matrix:
-    - nodejs_version: '12'
     - nodejs_version: '14'
+    - nodejs_version: '16'
+    - nodejs_version: '18'
 cache:
   - "%LOCALAPPDATA%\\Yarn"
 # Install scripts. (runs after repo cloning)
